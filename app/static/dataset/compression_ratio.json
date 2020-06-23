@@ -1,0 +1,9 @@
+
+
+{
+    "dataset": "cluster1",
+    "compression_method": "Posting JSON data to Flask!",
+    "compression_reatio": "0.9",
+    "method": "compression"
+
+}
