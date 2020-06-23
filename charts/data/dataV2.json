@@ -1,0 +1,52 @@
+[
+    {
+        "catagory": "Angular Distance", 
+        "values": [
+            {
+                "value": 0.28855871171922326, 
+                "rate": "Max"
+            }, 
+            {
+                "value": 0.05326160583997195, 
+                "rate": "Mean"
+            }
+        ],
+		"compression_method": "DFT",
+		"compression_ratio": "0.5",
+		"dataset": "cluster2"
+    }, 
+    {
+        "catagory": "Hausdarff Distance", 
+        "values": [
+            {
+                "value": 111.0, 
+                "rate": "Max"
+            }, 
+            {
+                "value": 23.503333333333334, 
+                "rate": "Mean"
+            }
+        ],
+		"compression_method": "DFT",
+		"compression_ratio": "0.5",
+		"dataset": "cluster2"
+    }, 
+    {
+        "catagory": "Volumetric Difference", 
+        "values": [
+            {
+                "value": 94026.62138912923, 
+                "rate": "Max"
+            }, 
+            {
+                "value": 14048.926979198273, 
+                "rate": "Mean"
+            }
+        ],
+		"compression_method": "DFT",
+		"compression_ratio": "0.5",
+		"dataset": "cluster2"
+    }
+	
+	
+]
