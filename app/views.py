@@ -4,7 +4,10 @@ from flask import jsonify, make_response
 # from app.distance_metrics import distance_metrics
 from app.compress_methods import compress
 from app.distance_metrics_final import distance_metrics
+from app.visualization import visualize
 import os
+import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 
 
 
@@ -124,7 +127,7 @@ def input_comparision():
                             print('Start dealing with ', str(lon), str(lat))
                             time_series = [float(each_one) for each_one in datapoint[2:]]
                             compress_data[(lon, lat)] = dict()
-                            compression_m_body = compression_method_body(time_series)
+
                             c_tools = compress(time_series)
 
                             compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.paa(float(compression_ratio))
@@ -197,7 +200,7 @@ def input_comparision():
                             print('Start dealing with ', str(lon), str(lat))
                             time_series = [float(each_one) for each_one in datapoint[2:]]
                             compress_data[(lon, lat)] = dict()
-                            compression_m_body = compression_method_body(time_series)
+
                             c_tools = compress(time_series)
 
                             compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.modify_dp(int(compression_ratio))
@@ -406,6 +409,70 @@ def input_comparision():
         # print(compress_data)
 
         return make_response(jsonify({"message": "Request body must be JSON"}), 400)
+
+
+@app.route("/visualize")
+def TIN_visualize():
+    return render_template("public/visualization.html")
+
+@app.route("/visualize_results", methods=["POST"])
+def visualization():
+    from app.visualization import visualize
+    compression_method = request.form.get("compression")
+    instance = request.form.get("s_instance")
+    print(compression_method)
+    print(instance)
+    # data = open('app/static/dataset/rawa_data/cluster1.txt', 'r')
+
+    dataset='6'
+    v = visualize(dataset)
+    # v.__init__('6')
+    # # visual.plotting()
+    # val_idx = instance
+    ratio = 0.5
+    lon, lat, z = v.val_and_lon_lat(val_idx=int(instance)+2)
+    # print(z)
+    if compression_method =='DFT':
+
+        cm_points = v.compresse_interpolate(dataset=dataset, mthd=v.dft, datatype=float, ratio=ratio)
+        z2 = v.interpolated_zvalue(val_idx=0, interpolated_points=cm_points)
+        # print(z2)
+        v.plotting(lon=lon, lat=lat, z_raw=z, z_compress=z2, mthd=compression_method, ratio=ratio)
+        return render_template("/public/visualize_TINinstance.html", method=compression_method, instance=instance, file_name='/images/TINinstance/3D{0}.png'.format(compression_method.lower()))
+
+    elif compression_method == 'PAA':
+
+        cm_points = v.compresse_interpolate(dataset=dataset, mthd=v.paa, datatype=float, ratio=ratio)
+        z2 = v.interpolated_zvalue(val_idx=0, interpolated_points=cm_points)
+        v.plotting(lon=lon, lat=lat, z_raw=z, z_compress=z2, mthd=compression_method, ratio=ratio)
+        return render_template("/public/visualize_TINinstance.html", method=compression_method, instance=instance, file_name='/images/TINinstance/3D{0}.png'.format(compression_method.lower()))
+
+    elif compression_method == 'VW':
+
+        cm_points = v.compresse_interpolate(dataset=dataset, mthd=v.modify_vw, datatype=int, ratio=ratio)
+        z2 = v.interpolated_zvalue(val_idx=0, interpolated_points=cm_points)
+        v.plotting(lon=lon, lat=lat, z_raw=z, z_compress=z2, mthd=compression_method, ratio=ratio)
+        return render_template("/public/visualize_TINinstance.html", method=compression_method, instance=instance, file_name='/images/TINinstance/3D{0}.png'.format(compression_method.lower()))
+
+    elif compression_method == 'DP':
+
+        cm_points = v.compresse_interpolate(dataset=dataset, mthd=v.modify_dp, datatype=int, ratio=ratio)
+        z2 = v.interpolated_zvalue(val_idx=0, interpolated_points=cm_points)
+        v.plotting(lon=lon, lat=lat, z_raw=z, z_compress=z2, mthd=compression_method, ratio=ratio)
+        return render_template("/public/visualize_TINinstance.html", method=compression_method, instance=instance, file_name='/images/TINinstance/3D{0}.png'.format(compression_method.lower()))
+
+    elif compression_method == 'OP':
+
+        cm_points = v.compresse_interpolate(dataset=dataset, mthd=v.modify_opt, datatype=int, ratio=ratio)
+        z2 = v.interpolated_zvalue(val_idx=0, interpolated_points=cm_points)
+        v.plotting(lon=lon, lat=lat, z_raw=z, z_compress=z2, mthd=compression_method, ratio=ratio)
+        return render_template("/public/visualize_TINinstance.html", method=compression_method, instance=instance, file_name='/images/TINinstance/3D{0}.png'.format(compression_method.lower()))
+
+    else:
+
+        return "No compression method is selected"
+
+
 
 
 @app.route("/compare_compression", methods=["POST"])
