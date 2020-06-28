@@ -1,0 +1,38 @@
+{% extends "public/templates/public_template.html" %}
+{% block title %}Home{% endblock %}
+
+{% block main %}
+<style>box {
+   width: 100%;
+   height: auto;
+
+   wrap img {
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+}
+
+}</style>
+
+<div class="container">
+  <div class="row">
+    <div class="col">
+      <p > Instance TIN visualization</p>
+      <p>The compression method is {{method}} and the instance is {{instance}}</p>
+      <div id="box">
+   <div id="wrap">
+<!--      <img src="{{ url_for('static', filename = image_url) }}" width="16" height="16" alt="previous" title="Previous" border="0">-->
+      <img src={{url_for('static', filename=file_name)}} width="auto" height="auto" alt="Tin_instance" title="TIN_instance" border="0"  >
+<!--      <img src="{{imag_url}}" alt="{{ method }}" title=" {{instance}}" width="120" height="90" />-->
+   </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+
+
+
+{% endblock %}

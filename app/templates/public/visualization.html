@@ -1,12 +1,125 @@
 {% extends "public/templates/public_template.html" %}
 {% block title %}Home{% endblock %}
 
+
 {% block main %}
-<div class="container">
-  <div class="row">
-    <div class="col">
-      <h1>Visualize</h1>
+<style>
+    div{
+
+    /*margin-left: 30px !important;*/
+        /*border: 1px solid black;*/
+  /*margin-top: 100px;*/
+  /*margin-bottom: 100px;*/
+  /*margin-right: 150px;*/
+  margin-left: 80px;
+  /*background-color: lightblue;*/
+    }
+
+
+</style>
+<div>
+                <h5>Visualization</h5>
+               <form action='/visualize_results' method='POST' id='submitform'>
+                 <div class="select">
+                <!--<input type='text', placeholder='user id'  name='user_input'>-->
+                   <h5>Select the subset of dataset</h5>
+                <!--<select name="datas"  id="datas"></select>-->
+                   <!--<label for="dataset">Choose subset datset:</label>-->
+
+                    <label for="long1">LON.1:</label>
+                    <input type="text" id="long1" name="1ong1" placeholder="-93.581543">
+                    <label for="long2">LON.2:</label>
+                    <input type="text" id="long2" name="long2" placeholder="-93.581543"><br><br>
+                   <label for="lat1">LAT.1:</label>
+                   <input type="text" id="lat1" name="LAT.1" placeholder="42.032974">
+                    <label for="lat2">LAT.2:</label>
+                    <input type="text" id="lat2" name="lat2" placeholder="42.032974"><br><br>
+                   </div>
+                   <!--<input type="submit" value="Submit">-->
+
+                    <!--<select name="data" id="dataset" >-->
+                      <!--<option value="cluster1">dataset1</option>-->
+                      <!--<option value="cluster2">dataset2</option>-->
+                      <!--<option value="cluster3">dataset3</option>-->
+                      <!--<option value="cluster4">dataset4</option>-->
+                        <!--<option value="cluster5">dataset5</option>-->
+                      <!--<option value="6">dataset6</option>-->
+                      <!--<option value="7">dataset7</option>-->
+                      <!--<option value="8">dataset8</option>-->
+                        <!--<option value="9">dataset9</option>-->
+                      <!--<option value="10">dataset10</option>-->
+
+                    <!--</select>-->
+
+                <br><br>
+                <!--<h2>Other Options</h2>-->
+                 <div class="choose_cmmethd">
+
+                    <label for="cm_mthd">Choose a compression method:</label>
+                      <select id="cm_mthd" name="compression">
+                        <option value="DFT">Discrete Fourier Transform (DFT)</option>
+                        <option value="PAA">Piecewise Aggregate Approximation (PAA)</option>
+                        <option value="VW">Visvalingam-Whyatt Algorithm (VW)</option>
+                        <option value="OP">(Adapted) Optimal Algorithm (OP)</option>
+                        <option value="DP">(Adapted) Douglas-Peucker Algorithm (DP)</option>
+                      </select>
+                 </div>
+                 <br><br>
+
+                 <div class="chhose_instance">
+
+                    <label for="instance">Choose a compression method:</label>
+                      <select id="instance" name="s_instance">
+                        <option value="1">Day: 1</option>
+                        <option value="2">Day: 2</option>
+                        <option value="3">Day: 3</option>
+                        <option value="4">Day: 4</option>
+                        <option value="5">Day: 5</option>
+                      </select>
+                   </div>
+                 <br>
+                 <br>
+                      <div>
+                        <button type="submit" class="btn btn-success">Compare</button>
+                       </div>
+
+                <!--<h5>Minimum Play Time (minutes)</h5>-->
+                <!--<input type="text", placeholder='0'  name='min_time'>-->
+                <!--<br><br>-->
+                <!--<h5>Maximum Play Time (minutes)</h5>-->
+                <!--<input type="text", placeholder='500000'  name='max_time'>-->
+              </form>
     </div>
-  </div>
-</div>
+
+{% endblock %}
+
+{% block script %}
+
+
+<!--// var data = "app/static/dataset/dataset_name.json";-->
+
+<!--// var data = [{'1':'Name'}, {'2': 'Age'}, {'3': 'Gender'}];-->
+
+<!--// var data = JSON.parse(text);-->
+<!--// var $select = $('#datas');-->
+<!--// $.each(data, function(i, val){-->
+<!--//     $select.append($('<option />', { value: (i+1), text: val[i+1] }));-->
+<!--// });-->
+
+<!--var xmlhttp = new XMLHttpRequest();-->
+<!--xmlhttp.onreadystatechange = function() {-->
+  <!--if (this.readyState == 4 && this.status == 200) {-->
+    <!--var myObj = JSON.parse(this.responseText);-->
+    <!--document.getElementById("demo").innerHTML = myObj.name;-->
+  <!--}-->
+<!--};-->
+<!--xmlhttp.open("GET", "app/dataset_name.json", true);-->
+<!--xmlhttp.send();-->
+
+
+
+
+
+
+
 {% endblock %}
