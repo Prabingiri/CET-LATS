@@ -1,0 +1,17 @@
+{% extends "public/templates/public_template.html" %}
+{% block title %}Home{% endblock %}
+
+{% block main %}
+<div class="container">
+  <div class="row">
+    <div class="col">
+      <h1>Compare</h1>
+      <p > Instance TIN visualization</p>
+      <p>The compression method are {{method}} the plot is as follows</p>
+
+      <p> datasource = {{url_for('static', filename = json_result_url)}}<p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
