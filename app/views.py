@@ -6,6 +6,8 @@ from app.compress_methods import compress
 from app.distance_metrics_final import distance_metrics
 from app.visualization import visualize
 import os
+import csv
+import json
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 
@@ -475,276 +477,356 @@ def visualization():
 
 
 
-@app.route("/compare_compression", methods=["POST"])
+@app.route("/compare_compression")
 def compare_methods():
-    if request.is_json:
-
-        req = request.get_json()
-        dataset = req.get("dataset")
-        print(dataset)
-
-        # compression_method = req.get("compression_method")
-        # compression_ratio = req.get("compression_ratio")
-        # method = req.get("method")
-        raw_volume ={}
-        methods = req.POST.get("methods")
-
-        #
-
-        if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
-            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
-            print("compression started......")
-            dm = distance_metrics(dataset)
-            rawvolume = dm.raw_volfor1cluster()
-            print("raw volume calculated")
+    return render_template("public/compare_methods.html")
 
 
-            for mthod in methods:
-                if mthod == "DFT":
-                  print("I might work")
+
+    # if request.is_json:
+    #
+    #     req = request.get_json()
+    #     dataset = req.get("dataset")
+    #     print(dataset)
+    #
+    #     # compression_method = req.get("compression_method")
+    #     # compression_ratio = req.get("compression_ratio")
+    #     # method = req.get("method")
+    #     raw_volume ={}
+    #     methods = req.POST.get("methods")
+    #
+    #     #
+    #
+    #     if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
+    #         data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+    #         print("compression started......")
+    #         dm = distance_metrics(dataset)
+    #         rawvolume = dm.raw_volfor1cluster()
+    #         print("raw volume calculated")
+    #
+    #
+    #         for mthod in methods:
+    #             if mthod == "DFT":
+    #               print("I might work")
 
 
-@app.route("/TIN_visualization", methods=["POST"])
-def TIN_visualization():
-    print("TINS are visualizaed")
-#
-# @app.route("/input_values", methods=["POST"])
-# def input_comparision():
-
-@app.route('/user_rec', methods=['POST'])
-def user_rec():
+@app.route('/comparison', methods=['POST'])
+def comparison():
     # user_name = request.form.get('user_input')
     # min_time = request.form.get('min_time')
     # max_time = request.form.get('max_time')
     # compress_data=dict()
     methods = request.form.getlist('check')
+    print(methods)
     dataset = request.form.get('data')
-    print(methods, dataset)
+    # print(methods, dataset)
     # Compress Ratio for PAA and DFT
+    ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
+    result = dict()
     ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
     result = dict()
 
     # Error tolerance for DP, VW and OPT
     errors = [15, 25, 35, 50, 65, 80]
-    if os.path.exists('app/static/dataset/rawa_data/' + dataset + '.txt'):
-        data = open('app/static/dataset/rawa_data/' + dataset + '.txt', 'r')
+    if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
+        # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + dataset + '.txt', 'r')
         print("compression started......")
         dm = distance_metrics(dataset)
         rawvolume = dm.raw_volfor1cluster()
         # b=dm.raw_volfor1cluster()
         print("raw volume calculated")
+        method = set(methods)
+        headers = ['d_metric', 'c_method', '1/c_ratio', 'measure', 'value']
+        d = open('app/static/results/comparison_result.csv', 'w')
+        w = csv.writer(d)
+        w.writerow(headers)
+        d.close()
+        # d.write(headers)
+        if 'VW' in method:
+            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
 
-        for mthd in methods:
+            compress_data = {}
+            for datapoint in data:
+                # print("I am inside for loop")
+                datapoint = datapoint.split(',')
+                lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
 
-            if mthd == "DFT":
-                compress_data = dict()
-                for datapoint in data:
-                    # print("I am inside for loop")
-                    datapoint = datapoint.split(',')
-                    lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+                if (lon, lat) not in compress_data:
+                    # print('Start dealing with ', str(lon), str(lat))
+                    time_series = [float(each_one) for each_one in datapoint[2:]]
+                    compress_data[(lon, lat)] = dict()
+                    # compression_m_body = compression_method_body(time_series)
+                    c_tools = compress(time_series)
+                    for error in errors:
+                        compress_data[(lon, lat)][('VW', error)] = c_tools.modify_vw(error)
 
-                    if (lon, lat) and mthd not in compress_data:
-                            # print("Bhawana")
-                        print('Start dealing with ', str(lon), str(lat))
-                        time_series = [float(each_one) for each_one in datapoint[2:]]
-                        compress_data[(lon, lat)] = dict()
-                        # compression_m_body = compression_method_body(time_series)
-                        c_tools = compress(time_series)
-                        for ratio in ratios:
-                            compress_data[(lon, lat)][(mthd, ratio)] = c_tools.dft(ratio)
-                    # print("I was already compressed ")
-                    # print(len(compress_data))
+            hd = dm.Hausdarff_distance(rawvolume, compress_data)
+            ad = dm.Angular_diff(rawvolume, compress_data)
 
-                    # print(len(rawvolume))
-                vol_dif = []
-                hd_dif = []
-                ag_dif = []
-                for ratio in ratios:
-                    compressedvolume = dm.compressed_volume(rawvolume, ratio, mthd, compress_data)
-                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    vol_dif.append(vol_diff)
-                    # hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                    # hd_dif.append(hd)
-                    # ad = dm.Angular_diff(rawvolume, compress_data)
-                    # ag_dif.append(ad)
-                hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                ad = dm.Angular_diff(rawvolume, compress_data)
-                # print(vol_diff)
-                print(hd.values())
-                print(ad.values())
-                # hd= dm.Hausdarff_distance(rawvolume, compress_data)
-                # ad = dm.Angular_diff(rawvolume, compress_data)
-                # print((compress_data))
-                print("I am done with DFT" )
-                # return vol_dif, hd, ad
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in hd.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
 
-            elif mthd == "PAA":
-                c_data = dict()
-                for datapoint in data:
-                    # print("I am inside for loop")
-                    datapoint = datapoint.split(',')
-                    lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+                    # d.writerow(headers)
+                    d.write('\n')
+            d.close()
 
-                    if (lon, lat) and mthd not in c_data:
-                            # print("Bhawana")
-                        print('Start dealing with ', str(lon), str(lat))
-                        time_series = [float(each_one) for each_one in datapoint[2:]]
-                        c_data[(lon, lat)] = dict()
-                        # compression_m_body = compression_method_body(time_series)
-                        c_tools = compress(time_series)
-                        for ratio in ratios:
-                            c_data[(lon, lat)][(mthd, ratio)] = c_tools.paa(ratio)
-                    # print("I was already compressed ")
-                    # print(len(compress_data))
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in ad.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
 
-                    # print(len(rawvolume))
-                vol_dif = []
-                hd_dif = []
-                ag_dif = []
-                for ratio in ratios:
-                    compressedvolume = dm.compressed_volume(rawvolume, ratio, mthd, c_data)
-                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    vol_dif.append(vol_diff)
-                    # hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                    # hd_dif.append(hd)
-                    # ad = dm.Angular_diff(rawvolume, compress_data)
-                    # ag_dif.append(ad)
-                hd = dm.Hausdarff_distance(rawvolume, c_data)
-                ad = dm.Angular_diff(rawvolume, c_data)
-                # print(vol_diff)
-                print(hd.values())
-                print(ad.values())
-                # hd= dm.Hausdarff_distance(rawvolume, compress_data)
-                # ad = dm.Angular_diff(rawvolume, compress_data)
-                # print((compress_data))
-                print("I am done with PAA" )
-                # return vol_dif, hd, ad
-            elif mthd == "DP":
-                compress_data = dict()
-                for datapoint in data:
-                    # print("I am inside for loop")
-                    datapoint = datapoint.split(',')
-                    lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for error in errors:
 
-                    if (lon, lat) and mthd not in compress_data:
+                compressedvolume = dm.compressed_volume(rawvolume, error, 'VW', compress_data)
+                # print(type(compressedvolume))
 
-                        print('Start dealing with ', str(lon), str(lat))
-                        time_series = [float(each_one) for each_one in datapoint[2:]]
-                        compress_data[(lon, lat)] = dict()
-                        # compression_m_body = compression_method_body(time_series)
-                        c_tools = compress(time_series)
-                        for error in errors:
-                            compress_data[(lon, lat)][(mthd, error)] = c_tools.modify_dp(error)
-                    # print("I was already compressed ")
-                    # print(len(compress_data))
+                # vol_dif.append(vol_diff)
+                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
 
-                    # print(len(rawvolume))
-                vol_dif = []
-                hd_dif = []
-                ag_dif = []
-                for error in errors:
-                    compressedvolume = dm.compressed_volume(rawvolume, error, mthd, compress_data)
-                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    vol_dif.append(vol_diff)
-                    # hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                    # hd_dif.append(hd)
-                    # ad = dm.Angular_diff(rawvolume, compress_data)
-                    # ag_dif.append(ad)
-                hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                ad = dm.Angular_diff(rawvolume, compress_data)
-                # print(vol_diff)
-                print(hd.values())
-                print(ad.values())
-                # hd= dm.Hausdarff_distance(rawvolume, compress_data)
-                # ad = dm.Angular_diff(rawvolume, compress_data)
-                # print((compress_data))
-                print("I am done with DP" )
-                # return vol_dif, hd, ad
-            elif mthd == "VW":
-                compress_data = dict()
-                for datapoint in data:
-                    # print("I am inside for loop")
-                    datapoint = datapoint.split(',')
-                    lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+                for each_tec, mm in vol_diff.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+            d.close()
 
-                    if ((lon, lat) and mthd) not in compress_data:
-                            # print("Bhawana")
-                        print('Start dealing with ', str(lon), str(lat))
-                        time_series = [float(each_one) for each_one in datapoint[2:]]
-                        compress_data[(lon, lat)] = dict()
-                        # compression_m_body = compression_method_body(time_series)
-                        c_tools = compress(time_series)
-                        for error in errors:
-                            compress_data[(lon, lat)][(mthd, error)] = c_tools.modify_vw(error)
-                    # print("I was already compressed ")
-                    # print(len(compress_data))
+            print("I am done with vw")
 
-                    # print(len(rawvolume))
-                vol_dif = []
-                hd_dif = []
-                ag_dif = []
-                for error in errors:
-                    compressedvolume = dm.compressed_volume(rawvolume, error, mthd, compress_data)
-                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    vol_dif.append(vol_diff)
-                    # hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                    # hd_dif.append(hd)
-                    # ad = dm.Angular_diff(rawvolume, compress_data)
-                    # ag_dif.append(ad)
+        if 'PAA' in method:
+            compress_data = {}
+            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
 
-                hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                ad = dm.Angular_diff(rawvolume, compress_data)
-                print("vol_diff")
-                print(vol_dif)
-                print("hd")
-                print(hd)
-                print("ad")
-                print(ad)
-                # hd= dm.Hausdarff_distance(rawvolume, compress_data)
-                # ad = dm.Angular_diff(rawvolume, compress_data)
-                # print((compress_data))
-                print("I am done with VW" )
-                # return vol_dif, hd, ad
+            for datapoint in data:
+                datapoint = datapoint.split(',')
+                lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
 
-            elif mthd == "OP":
-                compress_data = dict()
-                for datapoint in data:
-                    # print("I am inside for loop")
-                    datapoint = datapoint.split(',')
-                    lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+                if (lon, lat) not in compress_data:
+                    # print('Start dealing with ', str(lon), str(lat))
+                    time_series = [float(each_one) for each_one in datapoint[2:]]
+                    compress_data[(lon, lat)] = dict()
+                    c_tools = compress(time_series)
+                    for ratio in ratios:
+                        compress_data[(lon, lat)][('PAA', ratio)] = c_tools.paa(ratio)
 
-                    if (lon, lat) and mthd not in compress_data:
+            hd = dm.Hausdarff_distance(rawvolume, compress_data)
+            ad = dm.Angular_diff(rawvolume, compress_data)
 
-                        print('Start dealing with ', str(lon), str(lat))
-                        time_series = [float(each_one) for each_one in datapoint[2:]]
-                        compress_data[(lon, lat)] = dict()
-                        # compression_m_body = compression_method_body(time_series)
-                        c_tools = compress(time_series)
-                        for error in errors:
-                            compress_data[(lon, lat)][(mthd, error)] = c_tools.modify_opt(error)
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in hd.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
 
-                vol_dif = []
-                hd_dif = []
-                ag_dif = []
-                for error in errors:
-                    compressedvolume = dm.compressed_volume(rawvolume, error, mthd, compress_data)
-                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    vol_dif.append(vol_diff)
-                    # hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                    # hd_dif.append(hd)
-                    # ad = dm.Angular_diff(rawvolume, compress_data)
-                    # ag_dif.append(ad)
-                hd = dm.Hausdarff_distance(rawvolume, compress_data)
-                ad = dm.Angular_diff(rawvolume, compress_data)
-                # print(vol_diff)
-                print(hd.values())
-                print(ad.values())
-                # hd= dm.Hausdarff_distance(rawvolume, compress_data)
-                # ad = dm.Angular_diff(rawvolume, compress_data)
-                # print((compress_data))
-                print("I am done with DFT" )
-                # return vol_dif, hd, ad
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in ad.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
 
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for ratio in ratios:
+
+                compressedvolume = dm.compressed_volume(rawvolume, ratio, 'PAA', compress_data)
+
+                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                for each_tec, mm in vol_diff.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+            d.close()
+
+            print("I am done with PAA")
+        if 'DFT' in method:
+            compress_data = {}
+            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+
+            for datapoint in data:
+                datapoint = datapoint.split(',')
+                lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+
+                if (lon, lat) not in compress_data:
+                    # print('Start dealing with ', str(lon), str(lat))
+                    time_series = [float(each_one) for each_one in datapoint[2:]]
+                    compress_data[(lon, lat)] = dict()
+                    c_tools = compress(time_series)
+                    for ratio in ratios:
+                        compress_data[(lon, lat)][('DFT', ratio)] = c_tools.dft(ratio)
+
+            hd = dm.Hausdarff_distance(rawvolume, compress_data)
+            ad = dm.Angular_diff(rawvolume, compress_data)
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in hd.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in ad.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for ratio in ratios:
+
+                compressedvolume = dm.compressed_volume(rawvolume, ratio, 'DFT', compress_data)
+
+                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                for each_tec, mm in vol_diff.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+            d.close()
+
+            print("I am done with DFT")
+
+        if 'OP' in method:
+            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+
+            compress_data = {}
+            for datapoint in data:
+                # print("I am inside for loop")
+                datapoint = datapoint.split(',')
+                lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+
+                if (lon, lat) not in compress_data:
+                    # print('Start dealing with ', str(lon), str(lat))
+                    time_series = [float(each_one) for each_one in datapoint[2:]]
+                    compress_data[(lon, lat)] = dict()
+                    # compression_m_body = compression_method_body(time_series)
+                    c_tools = compress(time_series)
+                    for error in errors:
+                        compress_data[(lon, lat)][('OP', error)] = c_tools.modify_opt(error)
+
+            hd = dm.Hausdarff_distance(rawvolume, compress_data)
+            ad = dm.Angular_diff(rawvolume, compress_data)
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in hd.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+
+                    # d.writerow(headers)
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in ad.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for error in errors:
+
+                compressedvolume = dm.compressed_volume(rawvolume, error, 'OP', compress_data)
+                # print(type(compressedvolume))
+
+                # vol_dif.append(vol_diff)
+                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                for each_tec, mm in vol_diff.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+            d.close()
+
+            print("I am done with OP")
+
+        if 'DP' in method:
+            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+
+            compress_data = {}
+            for datapoint in data:
+                # print("I am inside for loop")
+                datapoint = datapoint.split(',')
+                lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
+
+                if (lon, lat) not in compress_data:
+                    # print('Start dealing with ', str(lon), str(lat))
+                    time_series = [float(each_one) for each_one in datapoint[2:]]
+                    compress_data[(lon, lat)] = dict()
+                    # compression_m_body = compression_method_body(time_series)
+                    c_tools = compress(time_series)
+                    for error in errors:
+                        compress_data[(lon, lat)][('DP', error)] = c_tools.modify_dp(error)
+
+            hd = dm.Hausdarff_distance(rawvolume, compress_data)
+            ad = dm.Angular_diff(rawvolume, compress_data)
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for each_tec, mm in hd.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+
+                    # d.writerow(headers)
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            write_list = []
+            for each_tec, mm in ad.items():
+                for key_measure, vals in mm.items():
+                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    d.write(",".join([str(x) for x in write_list]))
+                    d.write('\n')
+            d.close()
+
+            d = open('app/static/results/comparison_result.csv', 'a')
+            for error in errors:
+
+                compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                # print(type(compressedvolume))
+
+                # vol_dif.append(vol_diff)
+                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                for each_tec, mm in vol_diff.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+            d.close()
+
+            print("I am done with DP")
+
+
+        with open('app/static/results/comparison_result.csv', 'r') as csvdata:
+            next(csvdata, None)  # skip the headers
+            reader = csv.DictReader(csvdata, fieldnames=['d_metric', 'c_method', 'c_ratio', 'measure', 'value'])
+            json.dump([row for row in reader], open('app/static/results/comparison.json', 'w+'))
+
+        return render_template("/public/Comparison.html", methods=method, json_result_url='/results/comparison.json')
+
+
+    else:
+
+        print("data is not available")
 
     return redirect('/')
 
