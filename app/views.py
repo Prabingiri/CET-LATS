@@ -19,7 +19,7 @@ def index():
     return render_template("public/compare_methods.html")
 
 
-@app.route("/input_values", methods=["POST"])
+@app.route("/input_values", methods=["POST", "GET"])
 def input_comparision():
 
     if request.is_json:
@@ -42,6 +42,11 @@ def input_comparision():
             dm = distance_metrics(dataset)
             rawvolume = dm.raw_volfor1cluster()
             print("raw volume calculated")
+            headers = ['d_metric', 'c_method', 'c_ratio', 'measure', 'value']
+            d = open('app/static/results/individual_result.csv', 'w')
+            w = csv.writer(d)
+            w.writerow(headers)
+            d.close()
 
             # c_m_body = compression_method_body()
             if compression_method == "DFT":
@@ -62,58 +67,52 @@ def input_comparision():
                             compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.dft(float(compression_ratio))
 
                     print("I was already compressed ")
-                    print(len(compress_data))
+                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method,
+                                                            compress_data)
 
-                    print(len(rawvolume))
-
-                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method, compress_data)
-
-                    print("compressed volume is calculated" )
+                    print("compressed volume is calculated")
 
                     print("calculating volume difference")
                     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
                     hd = dm.Hausdarff_distance(rawvolume, compress_data)
                     ad = dm.Angular_diff(rawvolume, compress_data)
-                    result3 = ad
-                    print(result3)
-                    result2 = hd
-                    print("HD")
-                    print(result2)
-                    result1 = vol_diff
-                    # resul =json.dumps(str(result1.items()))
 
-                    voltlist = []
-                    for key, value in result1.items():
-                        temp = [key, value]
-                        voltlist.append(temp)
-                    value1 = (voltlist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in hd.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
 
-                    hdlist = []
-                    for key, value in result2.items():
-                        temp = [key, value]
-                        hdlist.append(temp)
-                    value2=(hdlist[0][1])
+                            # d.writerow(headers)
+                            d.write('\n')
+                    d.close()
 
-                    anglist = []
-                    for key, value in result3.items():
-                        temp = [key, value]
-                        anglist.append(temp)
-                    value3 = (anglist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in ad.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
 
-                    response_body = {
+                    d = open('app/static/results/individual_result.csv', 'a')
 
-                        "Volumetric_difference": value1,
-                        "Hausdarff_distance": value2,
-                        "Angular_distance": value3,
-                        "dataset": dataset,
-                        "compression_ratio": compression_ratio,
-                        "compression_method": compression_method,
-
-
-
-                        }
-
-                    res = make_response(jsonify(response_body), 200)
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
+                    with open('app/static/results/individual_result.csv') as csvrdr:
+                        reader = csv.reader(csvrdr)
+                        data_list = list()
+                        for row in reader:
+                            data_list.append(row)
+                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    jdata.pop(0)
+                    result = jsonify(jdata)
+                    res = make_response(result, 200)
+                    print(res)
                     return res
 
             elif compression_method == "PAA":
@@ -136,59 +135,54 @@ def input_comparision():
                         else:
 
                             print("I was already compressed ")
-                    print(len(compress_data))
+                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method,
+                                                            compress_data)
 
-                    print(len(rawvolume))
-
-                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method, compress_data)
-
-                    print("compressed volume is calculated" )
+                    print("compressed volume is calculated")
 
                     print("calculating volume difference")
                     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    hd= dm.Hausdarff_distance(rawvolume, compress_data)
+                    hd = dm.Hausdarff_distance(rawvolume, compress_data)
                     ad = dm.Angular_diff(rawvolume, compress_data)
-                    result3 = ad
-                    print(result3)
-                    result2 = hd
-                    print("HD")
-                    print(result2)
-                    result1 = vol_diff
-                    # resul =json.dumps(str(result1.items()))
 
-                    voltlist = []
-                    for key, value in result1.items():
-                        temp = [key, value]
-                        voltlist.append(temp)
-                    value1=(voltlist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in hd.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
 
-                    hdlist = []
-                    for key, value in result2.items():
-                        temp = [key, value]
-                        hdlist.append(temp)
-                    value2=(hdlist[0][1])
+                            # d.writerow(headers)
+                            d.write('\n')
+                    d.close()
 
-                    anglist = []
-                    for key, value in result3.items():
-                        temp = [key, value]
-                        anglist.append(temp)
-                    value3 = (anglist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in ad.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
 
-                    response_body = {
+                    d = open('app/static/results/individual_result.csv', 'a')
 
-                        "Volumetric_difference": value1,
-                        "Hausdarff_distance": value2,
-                        "Angular_distance": value3,
-                        "dataset": dataset,
-                        "compression_ratio": compression_ratio,
-                        "compression_method": compression_method,
-
-
-
-                        }
-
-                    res = make_response(jsonify(response_body), 200)
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
+                    with open('app/static/results/individual_result.csv') as csvrdr:
+                        reader = csv.reader(csvrdr)
+                        data_list = list()
+                        for row in reader:
+                            data_list.append(row)
+                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    jdata.pop(0)
+                    result = jsonify(jdata)
+                    res = make_response(result, 200)
+                    print(res)
                     return res
+
             elif compression_method == "DP":
 
                     print("I am inside DP")
@@ -208,56 +202,52 @@ def input_comparision():
                             compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.modify_dp(int(compression_ratio))
 
                     print("I was already compressed ")
-                    print(len(compress_data))
+                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method,
+                                                            compress_data)
 
-                    print(len(rawvolume))
-
-                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method, compress_data)
-
-                    print("compressed volume is calculated" )
+                    print("compressed volume is calculated")
 
                     print("calculating volume difference")
                     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    hd= dm.Hausdarff_distance(rawvolume, compress_data)
+                    hd = dm.Hausdarff_distance(rawvolume, compress_data)
                     ad = dm.Angular_diff(rawvolume, compress_data)
-                    result3 = ad
-                    print(result3)
-                    result2 = hd
-                    print("HD")
-                    print(result2)
-                    result1 = vol_diff
-                    # resul =json.dumps(str(result1.items()))
 
-                    voltlist = []
-                    for key, value in result1.items():
-                        temp = [key, value]
-                        voltlist.append(temp)
-                    value1=(voltlist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in hd.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
 
-                    hdlist = []
-                    for key, value in result2.items():
-                        temp = [key, value]
-                        hdlist.append(temp)
-                    value2=(hdlist[0][1])
+                            # d.writerow(headers)
+                            d.write('\n')
+                    d.close()
 
-                    anglist = []
-                    for key, value in result3.items():
-                        temp = [key, value]
-                        anglist.append(temp)
-                    value3 = (anglist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in ad.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
 
-                    response_body = {
-                        "dataset" : dataset,
-                        "compression_method" : compression_method,
-                        "compression_ratio": compression_ratio,
-                        "Volumetric_difference": value1,
-                        "Hausdarff_distance": value2,
-                        "Angular_distance": value3
+                    d = open('app/static/results/individual_result.csv', 'a')
 
-
-                        }
-
-                    res = make_response(jsonify(response_body), 200)
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
+                    with open('app/static/results/individual_result.csv') as csvrdr:
+                        reader = csv.reader(csvrdr)
+                        data_list = list()
+                        for row in reader:
+                            data_list.append(row)
+                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    jdata.pop(0)
+                    result = jsonify(jdata)
+                    res = make_response(result, 200)
+                    print(res)
                     return res
 
 
@@ -280,58 +270,54 @@ def input_comparision():
                         else:
 
                             print("I was already compressed ")
-                    print(len(compress_data))
+                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method,
+                                                            compress_data)
 
-                    print(len(rawvolume))
-
-                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method, compress_data)
-
-                    print("compressed volume is calculated" )
+                    print("compressed volume is calculated")
 
                     print("calculating volume difference")
                     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    hd= dm.Hausdarff_distance(rawvolume, compress_data)
+                    hd = dm.Hausdarff_distance(rawvolume, compress_data)
                     ad = dm.Angular_diff(rawvolume, compress_data)
-                    result3 = ad
-                    print(result3)
-                    result2 = hd
-                    print("HD")
-                    print(result2)
-                    result1 = vol_diff
-                    # resul =json.dumps(str(result1.items()))
 
-                    voltlist = []
-                    for key, value in result1.items():
-                        temp = [key, value]
-                        voltlist.append(temp)
-                    value1=(voltlist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in hd.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
 
-                    hdlist = []
-                    for key, value in result2.items():
-                        temp = [key, value]
-                        hdlist.append(temp)
-                    value2=(hdlist[0][1])
+                            # d.writerow(headers)
+                            d.write('\n')
+                    d.close()
 
-                    anglist = []
-                    for key, value in result3.items():
-                        temp = [key, value]
-                        anglist.append(temp)
-                    value3 = (anglist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in ad.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
 
-                    response_body = {
-                        "dataset" : dataset,
-                        "compression_method" : compression_method,
-                        "compression_ratio": compression_ratio,
-                        "Volumetric_difference": value1,
-                        "Hausdarff_distance": value2,
-                        "Angular_distance": value3
+                    d = open('app/static/results/individual_result.csv', 'a')
 
-
-                        }
-
-                    res = make_response(jsonify(response_body), 200)
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
+                    with open('app/static/results/individual_result.csv') as csvrdr:
+                        reader = csv.reader(csvrdr)
+                        data_list = list()
+                        for row in reader:
+                            data_list.append(row)
+                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    jdata.pop(0)
+                    result = jsonify(jdata)
+                    res = make_response(result, 200)
+                    print(res)
                     return res
-            #
+
             elif compression_method == "OP":
 
                     print("I am inside OP")
@@ -351,56 +337,52 @@ def input_comparision():
                             compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.modify_opt(int(compression_ratio))
 
                     print("I was already compressed ")
-                    print(len(compress_data))
+                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method,
+                                                            compress_data)
 
-                    print(len(rawvolume))
-
-                    compressedvolume = dm.compressed_volume(rawvolume, compression_ratio, compression_method, compress_data)
-
-                    print("compressed volume is calculated" )
+                    print("compressed volume is calculated")
 
                     print("calculating volume difference")
                     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-                    hd= dm.Hausdarff_distance(rawvolume, compress_data)
+                    hd = dm.Hausdarff_distance(rawvolume, compress_data)
                     ad = dm.Angular_diff(rawvolume, compress_data)
-                    result3 = ad
-                    print(result3)
-                    result2 = hd
-                    print("HD")
-                    print(result2)
-                    result1 = vol_diff
-                    # resul =json.dumps(str(result1.items()))
 
-                    voltlist = []
-                    for key, value in result1.items():
-                        temp = [key, value]
-                        voltlist.append(temp)
-                    value1 = (voltlist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in hd.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
 
-                    hdlist = []
-                    for key, value in result2.items():
-                        temp = [key, value]
-                        hdlist.append(temp)
-                    value2=(hdlist[0][1])
+                            # d.writerow(headers)
+                            d.write('\n')
+                    d.close()
 
-                    anglist = []
-                    for key, value in result3.items():
-                        temp = [key, value]
-                        anglist.append(temp)
-                    value3 = (anglist[0][1])
+                    d = open('app/static/results/individual_result.csv', 'a')
+                    for each_tec, mm in ad.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
 
-                    response_body = {
-                        "dataset" : dataset,
-                        "compression_method" : compression_method,
-                        "compression_ratio": compression_ratio,
-                        "Volumetric_difference": value1,
-                        "Hausdarff_distance": value2,
-                        "Angular_distance": value3
+                    d = open('app/static/results/individual_result.csv', 'a')
 
-
-                        }
-
-                    res = make_response(jsonify(response_body), 200)
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                    d.close()
+                    with open('app/static/results/individual_result.csv') as csvrdr:
+                        reader = csv.reader(csvrdr)
+                        data_list = list()
+                        for row in reader:
+                            data_list.append(row)
+                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    jdata.pop(0)
+                    result = jsonify(jdata)
+                    res = make_response(result, 200)
+                    print(res)
                     return res
 
 
@@ -522,9 +504,9 @@ def comparison():
     # print(methods, dataset)
     # Compress Ratio for PAA and DFT
     ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
-    result = dict()
+
     ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
-    result = dict()
+
 
     # Error tolerance for DP, VW and OPT
     errors = [15, 25, 35, 50, 65, 80]
@@ -536,7 +518,7 @@ def comparison():
         # b=dm.raw_volfor1cluster()
         print("raw volume calculated")
         method = set(methods)
-        headers = ['d_metric', 'c_method', '1/c_ratio', 'measure', 'value']
+        headers = ['d_metric', 'c_method', 'c_ratio', 'measure', 'value']
         d = open('app/static/results/comparison_result.csv', 'w')
         w = csv.writer(d)
         w.writerow(headers)
@@ -816,13 +798,24 @@ def comparison():
             print("I am done with DP")
 
 
-        with open('app/static/results/comparison_result.csv', 'r') as csvdata:
-            next(csvdata, None)  # skip the headers
-            reader = csv.DictReader(csvdata, fieldnames=['d_metric', 'c_method', 'c_ratio', 'measure', 'value'])
-            json.dump([row for row in reader], open('app/static/results/comparison.json', 'w+'))
-
-        return render_template("/public/Comparison.html", methods=method, json_result_url='/results/comparison.json')
-
+        # with open('app/static/results/comparison_result.csv', 'r') as csvdata:
+        #     next(csvdata, None)  # skip the headers
+        #     reader = csv.DictReader(csvdata, fieldnames=['d_metric', 'c_method', 'c_ratio', 'measure', 'value'])
+        #     json.dump([row for row in reader], open('app/static/results/comparison.json', 'w+'))
+        #
+        # return render_template("/public/Comparison.html", methods=method, json_result_url='/results/comparison.json')
+        #
+        with open('app/static/results/comparison_result.csv') as csvrdr:
+            reader = csv.reader(csvrdr)
+            data_list = list()
+            for row in reader:
+                data_list.append(row)
+        jdata = [dict(zip(data_list[0], row)) for row in data_list]
+        jdata.pop(0)
+        result = jsonify(jdata)
+        res = make_response(result, 200)
+        print(res)
+        return res
 
     else:
 
