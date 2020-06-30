@@ -18,8 +18,8 @@ var margin = {
     bottom: 45,
     left: 60
 },
-width = 460 - margin.left - margin.right,
-height = 400 - margin.top - margin.bottom;
+width = 800 - margin.left - margin.right,
+height = 800 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
 var svg = d3.select("#scatter-chart")
@@ -31,18 +31,19 @@ var svg = d3.select("#scatter-chart")
         "translate(" + margin.left + "," + margin.top + ")");
 
 //Read the data
-d3.json("test_points.json", function (data) {
+d3.json("data/data.json", function (data) {
 
     //turn data from strings to integers
     data.forEach(function (d) {
-        d.x = +d.x;
-        d.y = +d.y;
+        d.c_ratio = +d.c_ratio;
+        d.value = +d.value;
     });
+
 	
     // Add X axis
-    var x = d3.scaleLinear()
-        .domain([0, d3.max(data, function (d) {
-                    return d.x;
+    var x = d3.scaleLog()
+        .domain([0.08, d3.max(data, function (d) {
+                    return d.c_ratio;
                 })])
         .range([0, width])
         svg.append("g")
@@ -50,45 +51,94 @@ d3.json("test_points.json", function (data) {
         .call(d3.axisBottom(x));
 
     // Add Y axis
-    var y = d3.scaleLinear()
-        .domain([0, d3.max(data, function (d) {
-                    return d.y;
+			
+    var y = d3.scaleLog()
+        .domain([0.0009, d3.max(data, function (d) {
+                    return d.value;
                 })])
         .range([height, 0]);
     svg.append("g")
     .call(d3.axisLeft(y));
 
+	// Color scale: give me a specie name, I return a color
+	var color = d3.scaleOrdinal()
+		.domain(["VW", "PAA", "DFT", "OP", "DP" ])
+		.range([ "#ff9999", "#1FBED6", "#97C30A", "#ff3be5", "#e64100" ])
+	
     // Add dots
     svg.selectAll(".dot")
     .data(data)
     .enter().append("circle")
     .attr("class", "dot")
     .attr("cx", function (d) {
-        return x(d.x);
+        return x(d.c_ratio);
     })
     .attr("cy", function (d) {
-        return y(d.y);
+        return y(d.value);
     })
-    .attr("r", 6)
-    .style("fill", "#ff0084")
+    .attr("r", 3)
+    .style("fill", function (d) { return color(d.c_method) } )
+	
+    svg.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", "steelblue")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x(function(d) { return x(d.c_ratio) })
+        .y(function(d) { return y(d.value) })
+        )
+	
+	var key = function (d) {
+		console.log("key", d);
+		return d.c_method;
+	};
+	
+	//Legend
+    var legend = svg.selectAll(".legend")
+        .data(key) //(data, key) the problem is here i believe. not sure what to put where key is
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function (d, i) {
+            return "translate(0," + i * 20 + ")";
+        })
 
+    legend.append("rect")
+    .attr("x", width + 12)
+	.attr("y", -8)
+    .attr("width", 18)
+    .attr("height", 18)
+    .style("fill", function (d) {
+        return color(d);
+    });
+
+    legend.append("text")
+    .attr("x", width + 8)
+    .attr("y", 0)
+    .attr("dy", ".35em")
+    .style("text-anchor", "end")
+    .text(function (d) {
+        return d;
+    });
+	
+/*
 	// Add text to dots
 	svg.selectAll(".text")
 	.data(data)
 	.enter().append("text")
 	.attr("class", "text")
 	.attr("x", function (d) {
-	    return x(d.x);
+	    return x(d.value);
 	})
 	.attr("y", function (d) {
-	    return y(d.y);
+	    return y(d.c_ratio);
 	})
-	.attr("dx", ".71em")
+	.attr("dx", ".21em")
 	.attr("dy", ".35em")
 	.text(function (d) {
-	    return d.value;
+	    return d.c_method;
 	})
-	.attr("font-size", "12px")
+	.attr("font-size", "9px")
     .attr("fill", "black");
 	
 	//Add axis labels
@@ -96,14 +146,14 @@ d3.json("test_points.json", function (data) {
     .attr("class", "x label")
     .attr("text-anchor", "end")
     .attr("x", width)
-    .attr("y", height + 30)
+    .attr("y", height + 31)
     .text("this is an axis");
 	
 	svg.append("text")
 	.attr("class", "y label")
 	.attr("text-anchor", "end")
 	.attr("y", -40)
-	.attr("dy", ".75em")
+	.attr("dy", "0.5em")
 	.attr("transform", "rotate(-90)")
 	.text("this is an axis");
 
@@ -114,7 +164,7 @@ d3.json("test_points.json", function (data) {
 	.attr("text-anchor", "middle")
 	.style("font-size", "16px")
 	.style("text-decoration", "underline")
-	.text("This is a Title");
+	.text("This is a Title");	*/
 })
 
 </script>
