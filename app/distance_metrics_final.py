@@ -46,6 +46,7 @@ class distance_metrics:
                 points[start_p + 1:idx] = [points[start_p] + i * slope for i in range(1, idx - start_p)]
             else:
                 idx += 1
+        # print(points)
 
         return points
 
@@ -67,6 +68,8 @@ class distance_metrics:
         # raw_volume=dict()
         loc_time_series = dict()
         rawdata = open('app/static/dataset/rawa_data/'+self.dataset+ '.txt', 'r')
+        # rawdata = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + self.dataset + '.txt', 'r')
+
         for dpoints in rawdata:
             dpoints = dpoints.split(',')
             lon, lat = self.lon_lat_to_XYZ(float(dpoints[0]), float(dpoints[1]))
@@ -129,7 +132,7 @@ class distance_metrics:
                                  list(p2) + [ts_2[tstamp]],
                                  list(p3) + [ts_3[tstamp]])]
 
-        print(len(compressed_vol))
+        # print(len(compressed_vol))
         return compressed_vol
 
 
@@ -142,17 +145,16 @@ class distance_metrics:
             res_each_cluster = dict()
 
             for c_tec, c_vol in compressed_vol[each_tri].items():
-                min_diff, max_diff, mean_diff =\
-                    min([abs(val - c_vol[idx]) for idx, val in enumerate(raw_vol)]), \
+                max_diff, mean_diff =\
                     max([abs(val - c_vol[idx]) for idx, val in enumerate(raw_vol)]), \
                     sum([abs(val - c_vol[idx]) for idx, val in enumerate(raw_vol)])/len(raw_vol)
 
 
                 if c_tec not in res_each_cluster:
-                    res_each_cluster[c_tec] = {'min': [min_diff], 'max': [max_diff], 'mean': [mean_diff]}
+                    res_each_cluster[c_tec] = { 'max': [max_diff], 'mean': [mean_diff]}
                     # print("finding min max")
                 else:
-                    res_each_cluster[c_tec]['min'].append(min_diff)
+                    # res_each_cluster[c_tec]['min'].append(min_diff)
                     res_each_cluster[c_tec]['max'].append(max_diff)
                     res_each_cluster[c_tec]['mean'].append(mean_diff)
                     # print("nearly done")
@@ -170,6 +172,8 @@ class distance_metrics:
         # print("xyz")
 
         data = open('app/static/dataset/rawa_data/' + self.dataset + '.txt', 'r')
+        # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + self.dataset + '.txt', 'r')
+
         loc_ts = dict()
         for ts in data:
             ts = ts.split(',')
@@ -194,7 +198,7 @@ class distance_metrics:
                     c_ratio = c_tech[1]
 
                 if (c_tech[0], c_ratio) not in res_each_cluster:
-                    res_each_cluster[(c_tech[0], c_ratio)] = {'max': [], 'mean': [],'min': []}
+                    res_each_cluster[(c_tech[0], c_ratio)] = {'max': [], 'mean': []}
 
                 h_d = []
                 for idx, val in enumerate(raw1):
@@ -202,7 +206,7 @@ class distance_metrics:
                     c_v = [(p1[0], p1[1], c1[idx]), (p2[0], p2[1], c2[idx]), (p3[0], p3[1], c3[idx])]
                     h_d.append(max(directed_hausdorff(raw_v, c_v)[0], directed_hausdorff(c_v, raw_v)[0]))
 
-                res_each_cluster[(c_tech[0], c_ratio)]['min'].append(min(h_d))
+
                 res_each_cluster[(c_tech[0], c_ratio)]['max'].append(max(h_d))
                 res_each_cluster[(c_tech[0], c_ratio)]['mean'].append(sum(h_d) / len(h_d))
             # data.close()
@@ -217,6 +221,8 @@ class distance_metrics:
 
         # f = open('cluster_data/' + data + '.txt', 'r')
         data = open('app/static/dataset/rawa_data/' + self.dataset + '.txt', 'r')
+        # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + self.dataset + '.txt', 'r')
+
         loc_ts = dict()
         for ts in data:
             ts = ts.split(',')
@@ -241,7 +247,7 @@ class distance_metrics:
                     c_ratio = c_tech[1]
 
                 if (c_tech[0], c_ratio) not in res_each_cluster:
-                    res_each_cluster[(c_tech[0], c_ratio)] = {'max': [], 'mean': [], 'min': []}
+                    res_each_cluster[(c_tech[0], c_ratio)] = {'max': [], 'mean': []}
 
                 h_d = []
                 for idx in range(len(raw1)):
@@ -271,7 +277,6 @@ class distance_metrics:
 
                     h_d.append(math.acos(cs) / math.pi)
 
-                res_each_cluster[(c_tech[0], c_ratio)]['min'].append(min(h_d))
                 res_each_cluster[(c_tech[0], c_ratio)]['max'].append(max(h_d))
                 res_each_cluster[(c_tech[0], c_ratio)]['mean'].append(sum(h_d) / len(h_d))
             # data.close()
@@ -279,6 +284,6 @@ class distance_metrics:
 
         # f.write('\n')
 
-    def mahanbolis_distance(self):
-        print("xyz")
+
+
 

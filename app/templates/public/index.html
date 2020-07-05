@@ -1,19 +1,164 @@
+
+
 {% extends "public/templates/public_template.html" %}
 {% block title %}Home{% endblock %}
 
 {% block main %}
-<div class="container">
-  <div class="row">
-    <div class="col">
-      <p > Index_file</p>
+<style>
 
-    </div>
-  </div>
-</div>
+    input:invalid:required {
+  background-image: linear-gradient(to right, pink, lightgreen);
+}
+</style>
+<form  id="someForm" action="individual_results" method="POST" onclick = "return(validate());">
+    <label for="method">Choose a compression method:</label>
+    <select id="method" name="method" required>
+        <option ></option>
+    </select>
+    <label for="ratio">Choose a ratio:</label>
+    <select id="ratio" name="ratio" required ></select>
+    <br><br>
+<!--    <button type="submit">Visualize</button>-->
+    <input type="submit" value="Submit" id="feedback-submit" onclick="thanks()">
+</form>
+
 {% endblock %}
 
 {% block script %}
+<script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+<script>
+    "use strict";
+
+    var methods = {{ methods|tojson }};
+
+    var form = $('form');
+    var method = $('select#method');
+    var ratio = $('select#ratio');
+
+    for (var key in methods) {
+        method.append($('<option/>', {'value': key, 'text': key}));
+    }
+
+    method.change(function(ev) {
+        ratio.empty();
+        ratio.append($('<option/>'));
+
+        var ratios = methods[method.val()];
+
+        for (var i in ratios) {
+            ratio.append($('<option/>', {'value': ratios[i], 'text': ratios[i]}));
+        }
+    });
+    function thanks(){
+    var button = document.getElementById("feedback-submit");
+    button.value = "Thanks!";
+    button.disabled = true;
+    var form = document.getElementById("someForm");
+    JSON.stringify(Object.fromEntries(form));
+    form.submit();
+}
 
 
 
+<!--    form.submit(function(ev) {-->
+<!--           var compression_method: method.val(),-->
+<!--            var compression_ratio: ratio.val()};-->
+<!--        $.ajax({-->
+<!--        type: "POST",-->
+<!--        url: "/input_values"-->
+<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->
+<!--            compression_method: method.val(),-->
+<!--            compression_ratio: ratio.val()-->
+<!--        }),-->
+<!--        success: function(data) {-->
+<!--            alert('SUCCESS: ' + data);-->
+<!--        },-->
+
+<!--        ev.preventDefault();-->
+
+<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->
+<!--    });-->
+</script>
+
+<script type = "text/javascript">
+   <!--
+      // Form validation code will come here.
+      function validate() {
+
+         if( document.someForm.method.value == ""|| isNaN( document.someForm.method.value ) ) {
+            alert( "Please provide your name!" );
+            document.someForm.method.focus() ;
+            return false;
+         }
+         if( document.someForm.ratio.value == ""|| isNaN( document.someForm.ratio.value  ) {
+            alert( "Please provide your Email!" );
+            document.someForm.ratio.focus() ;
+            return false;
+         }
+
+         return( true );
+      }
+   //-->
+</script>
 {% endblock %}
+
+
+
+<!--    $('input[type=submit]').click(function() {-->
+<!--    var method = $('select#method');-->
+<!--    var ratio = $('select#ratio');-->
+<!--    alert('Asshole')-->
+<!--    $.ajax({-->
+<!--        type: "POST",-->
+<!--        url:"/input_values"-->
+<!--        url: $(this).closest("form").attr("action"), // read the URL from the form attribute-->
+<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->
+<!--            compression_method: method,-->
+<!--            compression_ratio: ratio-->
+<!--        }),-->
+
+<!--        success: function(data) {-->
+<!--            alert('SUCCESS: ' + data);-->
+<!--        },-->
+<!--        error: function(xhr, textStatus, errorThrown) {-->
+<!--            document.getElementById('ratio').selectedIndex = 0;-->
+<!--            showMsg('ERROR: ' + errorThrown);-->
+<!--            return false;-->
+<!--        }-->
+<!--    });-->
+<!--    return false;-->
+<!--});-->
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en" dir="ltr">-->
+<!--<head>-->
+<!--  <meta charset="utf-8">-->
+<!--  <title></title>-->
+<!--</head>-->
+<!--<body>-->
+<!--  <form class="" action="/" method="post">-->
+<!--    <select onChange="changeSizeInput()" id="catSelect">-->
+<!--    {% for cat in cats %}-->
+<!--      <option size={{ cat['size'] }}>{{ cat['name'] }}</option>-->
+<!--    {% endfor %}-->
+<!--  </select>-->
+<!--    <input type="text" name="size" id="catSize">-->
+<!--    <input type="submit" value="Submit">-->
+<!--  </form>-->
+<!--</body>-->
+
+<!--<script>-->
+<!--  function changeSizeInput() {-->
+<!--    var cat = document.getElementById('catSelect')-->
+<!--    var size = cat.options[cat.selectedIndex].getAttribute("size");-->
+<!--    if (size == 'None') {-->
+<!--      size = ''-->
+<!--    }-->
+<!--    document.getElementById('catSize').value = size;-->
+<!--  }-->
+<!--  changeSizeInput()-->
+<!--</script>-->
+<!--<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous">-->
+<!--</script>-->
+<!--</html>-->

@@ -4,35 +4,65 @@ from flask import jsonify, make_response
 # from app.distance_metrics import distance_metrics
 from app.compress_methods import compress
 from app.distance_metrics_final import distance_metrics
+from csv import DictReader
+from itertools import groupby
+from pprint import pprint
 from app.visualization import visualize
 import os
 import csv
 import json
-import matplotlib.pyplot as plt
-import matplotlib.tri as mtri
+from statistics import mean
+import pandas as pd
 
 
 
 
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("public/compare_methods.html")
+    methods = {
+        'Discrete Fourier Transform (DFT)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
+        'Piecewise Aggregate Approximation (PAA)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
+        'Visvalingam-Whyatt Algorithm (VW)':[15, 25, 35, 50, 65, 80],
+        '(Adapted) Optimal Algorithm (OP)': [15, 25, 35, 50, 65, 80],
+        '(Adapted) Douglas-Peucker Algorithm (DP)': [15, 25, 35, 50, 65, 80]
+    }
+
+    return render_template("public/index.html", methods=methods)
 
 
-@app.route("/input_values", methods=["POST", "GET"])
+
+
+@app.route("/individual_results", methods=["POST", "GET"])
 def input_comparision():
+    # request.form.get
+    c_method = request.form.get("method")
+    compression_ratio = request.form.get("ratio")
+    print(c_method)
+    print(compression_ratio)
 
-    if request.is_json:
+    def fix(user_input):
+        mapping = {"Discrete Fourier Transform (DFT)": "DFT", "Piecewise Aggregate Approximation (PAA)": "PAA",
+                   "Visvalingam-Whyatt Algorithm (VW)": "VW", "(Adapted) Optimal Algorithm (OP)": "OP",
+                    "(Adapted) Douglas-Peucker Algorithm (DP)": "DP"
+                   }
 
-        req = request.get_json()
-        dataset = req.get("dataset")
-        print(dataset)
+        return mapping.get(user_input, user_input)
+    compression_method = fix(c_method)
+    print(compression_method)
 
-        compression_method = req.get("compression_method")
-        compression_ratio = req.get("compression_ratio")
-        method = req.get("method")
-        raw_volume ={}
-        compress_data = dict()
+    # if request.is_json:
+    #
+    #     req = request.get_json()
+    #     dataset = req.get("dataset")
+    dataset ='6'
+    #     # print(dataset)
+    #
+    #     compression_method = req.get("compression_method")
+    #     compression_ratio = req.get("compression_ratio")
+    #     # method = req.get("method")
+    #     raw_volume ={}
+    compress_data = dict()
+    if compression_method and compression_ratio is not None:
 
         #
 
@@ -103,17 +133,71 @@ def input_comparision():
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
-                    with open('app/static/results/individual_result.csv') as csvrdr:
-                        reader = csv.reader(csvrdr)
-                        data_list = list()
-                        for row in reader:
-                            data_list.append(row)
-                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
-                    jdata.pop(0)
-                    result = jsonify(jdata)
-                    res = make_response(result, 200)
-                    print(res)
-                    return res
+
+
+
+                    with open('app/static/results/individual_result.csv') as csvfile:
+                        r = DictReader(csvfile, skipinitialspace=True)
+                        data = [dict(d) for d in r]
+
+                        groups = []
+                        uniquekeys = []
+
+                        for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                            groups.append({
+                                "d_metric": k[0],
+                                "c_method": k[1],
+                                "c_ratio": k[2],
+                                "values": [
+                                    {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                                    in list(g)]
+                            })
+                            uniquekeys.append(k)
+                    print(groups)
+
+                    # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+                    # res = make_response(result, 200)
+                    with open('app/static/results/individual_results.json', 'w') as f:
+                        json.dump(groups, f)
+                    return render_template("public/bargraph.html", method=compression_method, compression_ratio=compression_ratio)
+                    # with open('app/static/results/individual_result.csv') as csvfile:
+                    #     r = DictReader(csvfile, skipinitialspace=True)
+                    #     data = [dict(d) for d in r]
+                    #
+                    #     groups = []
+                    #     uniquekeys = []
+                    #
+                    #     for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                    #         groups.append({
+                    #             "d_metric": k[0],
+                    #             "c_method": k[1],
+                    #             "c_ratio": k[2],
+                    #             "values": [
+                    #                 {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                    #                 in list(g)]
+                    #         })
+                    #         uniquekeys.append(k)
+                    # result = jsonify(groups)
+                    # res = make_response(result, 200)
+                    # with open("app/static/dataset/data.json", "r") as read_file:
+                    #     print("Converting JSON encoded data into Python dictionary")
+                    #     developer = json.load(read_file)
+                    # return jsonify(developer)
+
+
+                    # pprint(groups)
+
+                    # with open('app/static/results/individual_result.csv') as csvrdr:
+                    #     reader = csv.reader(csvrdr)
+                    #     data_list = list()
+                    #     for row in reader:
+                    #         data_list.append(row)
+                    # jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    # jdata.pop(0)
+                    # result = jsonify(jdata)
+                    # res = make_response(result, 200)
+                    # print(res)
+                    # return res
 
             elif compression_method == "PAA":
 
@@ -123,7 +207,7 @@ def input_comparision():
                         # print("I am inside for loop")
                         datapoint = datapoint.split(',')
                         lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
-                        if ((lon, lat) and (compression_method and compression_ratio)) not in compress_data:
+                        if (lon, lat) not in compress_data:
                             # print("I am inside if lat lon condition")
                             print('Start dealing with ', str(lon), str(lat))
                             time_series = [float(each_one) for each_one in datapoint[2:]]
@@ -148,7 +232,7 @@ def input_comparision():
                     d = open('app/static/results/individual_result.csv', 'a')
                     for each_tec, mm in hd.items():
                         for key_measure, vals in mm.items():
-                            write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            write_list = ['Hausdarff Distance', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
                             d.write(",".join([str(x) for x in write_list]))
 
                             # d.writerow(headers)
@@ -158,7 +242,7 @@ def input_comparision():
                     d = open('app/static/results/individual_result.csv', 'a')
                     for each_tec, mm in ad.items():
                         for key_measure, vals in mm.items():
-                            write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            write_list = ['Angular Difference', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
@@ -167,21 +251,64 @@ def input_comparision():
 
                     for each_tec, mm in vol_diff.items():
                         for key_measure, vals in mm.items():
-                            write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            write_list = ['Volumetric Difference', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
-                    with open('app/static/results/individual_result.csv') as csvrdr:
-                        reader = csv.reader(csvrdr)
-                        data_list = list()
-                        for row in reader:
-                            data_list.append(row)
-                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
-                    jdata.pop(0)
-                    result = jsonify(jdata)
-                    res = make_response(result, 200)
-                    print(res)
-                    return res
+
+                    with open('app/static/results/individual_result.csv') as csvfile:
+                        r = DictReader(csvfile, skipinitialspace=True)
+                        data = [dict(d) for d in r]
+
+                        groups = []
+                        uniquekeys = []
+
+                        for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                            groups.append({
+                                "d_metric": k[0],
+                                "c_method": k[1],
+                                "c_ratio": k[2],
+                                "values": [
+                                    {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                                    in list(g)]
+                            })
+                            uniquekeys.append(k)
+                    print(groups)
+
+                    # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+                    # res = make_response(result, 200)
+                    with open('app/static/results/individual_results.json', 'w') as f:
+                        json.dump(groups, f)
+                    return render_template("public/bargraph.html", method=compression_method, compression_ratio=compression_ratio)
+
+                    # a= json.dumps(groups)
+
+
+                        # f.write()
+                    # res = make_response(result, 200)
+
+                    # with open('app/static/results/comparison_result.csv', 'r') as csvdata:
+                    #     next(csvdata, None)  # skip the headers
+                    #     reader = csv.DictReader(csvdata, fieldnames=['d_metric', 'c_method', 'c_ratio', 'measure', 'value'])
+                    #     json.dump([row for row in reader], open('app/static/results/comparison.json', 'w+'))
+
+                    # return render_template("/public/Comparison.html", methods=method, json_result_url
+                    # return res
+                    # with open("app/static/dataset/data.json", "r") as read_file:
+                    #     print("Converting JSON encoded data into Python dictionary")
+                    #     developer = json.load(read_file)
+                    # return jsonify(developer)
+                    # with open('app/static/results/individual_result.csv') as csvrdr:
+                    #     reader = csv.reader(csvrdr)
+                    #     data_list = list()
+                    #     for row in reader:
+                    #         data_list.append(row)
+                    # jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    # jdata.pop(0)
+                    # result = jsonify(jdata)
+                    # res = make_response(result, 200)
+                    # print(res)
+                    # return res
 
             elif compression_method == "DP":
 
@@ -191,7 +318,7 @@ def input_comparision():
                         # print("I am inside for loop")
                         datapoint = datapoint.split(',')
                         lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
-                        if ((lon, lat) and (compression_method and compression_ratio)) not in compress_data:
+                        if (lon, lat) not in compress_data:
                             # print("I am inside if lat lon condition")
                             print('Start dealing with ', str(lon), str(lat))
                             time_series = [float(each_one) for each_one in datapoint[2:]]
@@ -238,35 +365,49 @@ def input_comparision():
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
-                    with open('app/static/results/individual_result.csv') as csvrdr:
-                        reader = csv.reader(csvrdr)
-                        data_list = list()
-                        for row in reader:
-                            data_list.append(row)
-                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
-                    jdata.pop(0)
-                    result = jsonify(jdata)
-                    res = make_response(result, 200)
-                    print(res)
-                    return res
+                    with open('app/static/results/individual_result.csv') as csvfile:
+                        r = DictReader(csvfile, skipinitialspace=True)
+                        data = [dict(d) for d in r]
+
+                        groups = []
+                        uniquekeys = []
+
+                        for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                            groups.append({
+                                "d_metric": k[0],
+                                "c_method": k[1],
+                                "c_ratio": k[2],
+                                "values": [
+                                    {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                                    in list(g)]
+                            })
+                            uniquekeys.append(k)
+                    print(groups)
+
+                    # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+                    # res = make_response(result, 200)
+                    with open('app/static/results/individual_results.json', 'w') as f:
+                        json.dump(groups, f)
+                    return render_template("public/bargraph.html", method=compression_method, compression_ratio=compression_ratio)
 
 
             elif compression_method == "VW":
 
                     print("I am inside VW")
-                # self.compress_data[(lon, lat)] = dict()
                     for datapoint in data:
                         # print("I am inside for loop")
                         datapoint = datapoint.split(',')
                         lon, lat = dm.lon_lat_to_XYZ(float(datapoint[0]), float(datapoint[1]))
-                        if ((lon, lat) and (compression_method and compression_ratio)) not in compress_data:
-                            # print("I am inside if lat lon condition")
-                            print('Start dealing with ', str(lon), str(lat))
-                            time_series = [float(each_one) for each_one in datapoint[2:]]
 
+                        if (lon, lat) not in compress_data:
+                            # print('Start dealing with ', str(lon), str(lat))
+                            time_series = [float(each_one) for each_one in datapoint[2:]]
+                            compress_data[(lon, lat)] = dict()
+                            # compression_m_body = compression_method_body(time_series)
                             c_tools = compress(time_series)
 
-                            compress_data[(lon, lat)][(compression_method), compression_ratio] = c_tools.modify_vw(int(compression_ratio))
+                            compress_data[(lon, lat)][(compression_method, compression_ratio)] = c_tools.modify_vw(int(compression_ratio))
+
                         else:
 
                             print("I was already compressed ")
@@ -306,17 +447,30 @@ def input_comparision():
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
-                    with open('app/static/results/individual_result.csv') as csvrdr:
-                        reader = csv.reader(csvrdr)
-                        data_list = list()
-                        for row in reader:
-                            data_list.append(row)
-                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
-                    jdata.pop(0)
-                    result = jsonify(jdata)
-                    res = make_response(result, 200)
-                    print(res)
-                    return res
+                    with open('app/static/results/individual_result.csv') as csvfile:
+                        r = DictReader(csvfile, skipinitialspace=True)
+                        data = [dict(d) for d in r]
+
+                        groups = []
+                        uniquekeys = []
+
+                        for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                            groups.append({
+                                "d_metric": k[0],
+                                "c_method": k[1],
+                                "c_ratio": k[2],
+                                "values": [
+                                    {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                                    in list(g)]
+                            })
+                            uniquekeys.append(k)
+                    print(groups)
+
+                    # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+                    # res = make_response(result, 200)
+                    with open('app/static/results/individual_results.json', 'w') as f:
+                        json.dump(groups, f)
+                    return render_template("public/bargraph.html", method=compression_method, compression_ratio=compression_ratio)
 
             elif compression_method == "OP":
 
@@ -373,17 +527,44 @@ def input_comparision():
                             d.write(",".join([str(x) for x in write_list]))
                             d.write('\n')
                     d.close()
-                    with open('app/static/results/individual_result.csv') as csvrdr:
-                        reader = csv.reader(csvrdr)
-                        data_list = list()
-                        for row in reader:
-                            data_list.append(row)
-                    jdata = [dict(zip(data_list[0], row)) for row in data_list]
-                    jdata.pop(0)
-                    result = jsonify(jdata)
-                    res = make_response(result, 200)
-                    print(res)
-                    return res
+
+
+
+                    with open('app/static/results/individual_result.csv') as csvfile:
+                        r = DictReader(csvfile, skipinitialspace=True)
+                        data = [dict(d) for d in r]
+
+                        groups = []
+                        uniquekeys = []
+
+                        for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['c_ratio'])):
+                            groups.append({
+                                "d_metric": k[0],
+                                "c_method": k[1],
+                                "c_ratio": k[2],
+                                "values": [
+                                    {k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'c_ratio']} for d
+                                    in list(g)]
+                            })
+                            uniquekeys.append(k)
+                    print(groups)
+
+                    # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+                    # res = make_response(result, 200)
+                    with open('app/static/results/individual_results.json', 'w') as f:
+                        json.dump(groups, f)
+                    return render_template("public/bargraph.html", method=compression_method, compression_ratio=compression_ratio)
+                    # with open('app/static/results/individual_result.csv') as csvrdr:
+                    #     reader = csv.reader(csvrdr)
+                    #     data_list = list()
+                    #     for row in reader:
+                    #         data_list.append(row)
+                    # jdata = [dict(zip(data_list[0], row)) for row in data_list]
+                    # jdata.pop(0)
+                    # result = jsonify(jdata)
+                    # res = make_response(result, 200)
+                    # print(res)
+                    # return res
 
 
         else:
@@ -503,13 +684,17 @@ def comparison():
     dataset = request.form.get('data')
     # print(methods, dataset)
     # Compress Ratio for PAA and DFT
-    ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
 
-    ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
-
+    rat_ios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
 
     # Error tolerance for DP, VW and OPT
-    errors = [15, 25, 35, 50, 65, 80]
+    err_ors = [15, 25, 35, 50, 65, 80]
+    compression_level = 2
+    ratios = rat_ios
+    errors = err_ors
+    print(ratios)
+    print(errors)
+
     if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
         # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + dataset + '.txt', 'r')
         print("compression started......")
@@ -518,11 +703,16 @@ def comparison():
         # b=dm.raw_volfor1cluster()
         print("raw volume calculated")
         method = set(methods)
-        headers = ['d_metric', 'c_method', 'c_ratio', 'measure', 'value']
+        headers = ['d_metric', 'c_method', 'measure', 'value']
         d = open('app/static/results/comparison_result.csv', 'w')
         w = csv.writer(d)
         w.writerow(headers)
         d.close()
+        f = open('app/static/results/comparison_mean_result.csv', 'w')
+        wr = csv.writer(f)
+        wr.writerow(headers)
+        f.close()
+        # headers2 = ['d_metric', 'c_method', 'measure', 'value']
         # d.write(headers)
         if 'VW' in method:
             data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
@@ -548,36 +738,58 @@ def comparison():
             d = open('app/static/results/comparison_result.csv', 'a')
             for each_tec, mm in hd.items():
                 for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
                     d.write(",".join([str(x) for x in write_list]))
 
                     # d.writerow(headers)
                     d.write('\n')
             d.close()
+            with open('app/static/results/comparison_result.csv') as csvfile:
+                r = DictReader(csvfile, skipinitialspace=True)
+                datam = [dict(d) for d in r]
+                # datam.pop(0)
+                # print(datam)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in ad.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
+                data = {}
+                for item in datam:
+                    # print(item)
+                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
+                # print(data)
+                f = open('app/static/results/comparison_mean_result.csv', 'a')
+                for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    # print(k, ave)
+                f.close()
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for error in errors:
 
-                compressedvolume = dm.compressed_volume(rawvolume, error, 'VW', compress_data)
-                # print(type(compressedvolume))
 
-                # vol_dif.append(vol_diff)
-                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-
-                for each_tec, mm in vol_diff.items():
-                    for key_measure, vals in mm.items():
-                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                        d.write(",".join([str(x) for x in write_list]))
-                        d.write('\n')
-            d.close()
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for each_tec, mm in ad.items():
+            #     for key_measure, vals in mm.items():
+            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #         d.write(",".join([str(x) for x in write_list]))
+            #         d.write('\n')
+            # d.close()
+            #
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for error in errors:
+            #
+            #     compressedvolume = dm.compressed_volume(rawvolume, error, 'VW', compress_data)
+            #     # print(type(compressedvolume))
+            #
+            #     # vol_dif.append(vol_diff)
+            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            #     for each_tec, mm in vol_diff.items():
+            #         for key_measure, vals in mm.items():
+            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #             d.write(",".join([str(x) for x in write_list]))
+            #             d.write('\n')
+            # d.close()
 
             print("I am done with vw")
 
@@ -603,32 +815,104 @@ def comparison():
             d = open('app/static/results/comparison_result.csv', 'a')
             for each_tec, mm in hd.items():
                 for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    write_list = ['HD', each_tec[0],  key_measure, sum(vals) / len(vals)]
                     d.write(",".join([str(x) for x in write_list]))
                     d.write('\n')
             d.close()
+            # with open('app/static/results/individual_result.csv') as csvfile:
+            #     r = DictReader(csvfile)
+            #     final = []
+            #     for k, v in groupby(r, lambda r: (r['d_metric'], r['c_method'], r['measure'])):
+            #         lst = list(v)
+            #         avg = sum(x['value'] for x in lst) / float(len(lst))
+            #         lst[0][3] = round(avg, 3)
+            #         final.append(lst[0])
+            #     print(final)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in ad.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
+            with open('app/static/results/comparison_result.csv') as csvfile:
+                r = DictReader(csvfile, skipinitialspace=True)
+                datam = [dict(d) for d in r]
+                # datam.pop(0)
+                # print(datam)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for ratio in ratios:
+                data = {}
+                for item in datam:
+                    # print(item)
+                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
+                # print(data)
+                f = open('app/static/results/comparison_mean_result.csv', 'a')
+                for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    # print(k, ave)
+                f.close()
 
-                compressedvolume = dm.compressed_volume(rawvolume, ratio, 'PAA', compress_data)
+            #     data = [dict(d) for d in r]
+            #
+            #     groups = []
+            #     uniquekeys = []
+            #
+            #     for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['measure'])):
+            #         groups.append({
+            #             "d_metric": k[0],
+            #             "c_method": k[1],
+            #             "measure": k[2],
+            #             "values": [
+            #                 {k: v.mean() for k, v in d.items() if k not in ['d_metric', 'c_method', 'measure']} for d
+            #                 in list(g)]
+            #         })
+            #         uniquekeys.append(k)
+            # print(groups)
 
-                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            # with open('app/static/results/individual_result.csv') as csvfile:
+            #     r = DictReader(csvfile, skipinitialspace=True)
+            #     array = [dict(d) for d in r]
+            #
+            #     for item in array:
+            #         data.append((item[0], item[1]), []).append(item[2])
+            #         for k, v in d.items():
+            #             print(sum(v) / len(v))
 
-                for each_tec, mm in vol_diff.items():
-                    for key_measure, vals in mm.items():
-                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                        d.write(",".join([str(x) for x in write_list]))
-                        d.write('\n')
-            d.close()
+            #     groups = []
+            #     uniquekeys = []
+            #
+            #     for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'], r['measure'])):
+            #         groups.append({
+            #             "d_metric": k[0],
+            #             "c_method": k[1],
+            #             "c_measure": k[2],
+            #             "values": [{
+            #                 k: v for k, v in d.items() if k not in ['d_metric', 'c_method', 'measure']} for d
+            #                 in list(g)]
+            #         })
+            #         uniquekeys.append()
+            # print(groups)
+
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for each_tec, mm in ad.items():
+            #     for key_measure, vals in mm.items():
+            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #         d.write(",".join([str(x) for x in write_list]))
+            #         d.write('\n')
+            # d.close()
+            #
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for ratio in ratios:
+            #
+            #     compressedvolume = dm.compressed_volume(rawvolume, ratio, 'PAA', compress_data)
+            #
+            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            #     for each_tec, mm in vol_diff.items():
+            #         for key_measure, vals in mm.items():
+            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #             d.write(",".join([str(x) for x in write_list]))
+            #             d.write('\n')
+            # d.close()
 
             print("I am done with PAA")
         if 'DFT' in method:
@@ -653,32 +937,52 @@ def comparison():
             d = open('app/static/results/comparison_result.csv', 'a')
             for each_tec, mm in hd.items():
                 for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
                     d.write(",".join([str(x) for x in write_list]))
                     d.write('\n')
             d.close()
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in ad.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
+            with open('app/static/results/comparison_result.csv') as csvfile:
+                r = DictReader(csvfile, skipinitialspace=True)
+                datam = [dict(d) for d in r]
+                # datam.pop(0)
+                # print(datam)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for ratio in ratios:
+                data = {}
+                for item in datam:
+                    # print(item)
+                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
+                # print(data)
+                f = open('app/static/results/comparison_mean_result.csv', 'a')
+                for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                f.close()
 
-                compressedvolume = dm.compressed_volume(rawvolume, ratio, 'DFT', compress_data)
-
-                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-
-                for each_tec, mm in vol_diff.items():
-                    for key_measure, vals in mm.items():
-                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                        d.write(",".join([str(x) for x in write_list]))
-                        d.write('\n')
-            d.close()
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for each_tec, mm in ad.items():
+            #     for key_measure, vals in mm.items():
+            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #         d.write(",".join([str(x) for x in write_list]))
+            #         d.write('\n')
+            # d.close()
+            #
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for ratio in ratios:
+            #
+            #     compressedvolume = dm.compressed_volume(rawvolume, ratio, 'DFT', compress_data)
+            #
+            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            #     for each_tec, mm in vol_diff.items():
+            #         for key_measure, vals in mm.items():
+            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #             d.write(",".join([str(x) for x in write_list]))
+            #             d.write('\n')
+            # d.close()
 
             print("I am done with DFT")
 
@@ -706,36 +1010,55 @@ def comparison():
             d = open('app/static/results/comparison_result.csv', 'a')
             for each_tec, mm in hd.items():
                 for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    write_list = ['HD', each_tec[0],  key_measure, sum(vals) / len(vals)]
                     d.write(",".join([str(x) for x in write_list]))
 
                     # d.writerow(headers)
                     d.write('\n')
             d.close()
+            with open('app/static/results/comparison_result.csv') as csvfile:
+                r = DictReader(csvfile, skipinitialspace=True)
+                datam = [dict(d) for d in r]
+                # datam.pop(0)
+                # print(datam)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in ad.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
+                data = {}
+                for item in datam:
+                    # print(item)
+                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
+                # print(data)
+                f = open('app/static/results/comparison_mean_result.csv', 'a')
+                for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                f.close()
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for error in errors:
-
-                compressedvolume = dm.compressed_volume(rawvolume, error, 'OP', compress_data)
-                # print(type(compressedvolume))
-
-                # vol_dif.append(vol_diff)
-                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-
-                for each_tec, mm in vol_diff.items():
-                    for key_measure, vals in mm.items():
-                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                        d.write(",".join([str(x) for x in write_list]))
-                        d.write('\n')
-            d.close()
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for each_tec, mm in ad.items():
+            #     for key_measure, vals in mm.items():
+            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #         d.write(",".join([str(x) for x in write_list]))
+            #         d.write('\n')
+            # d.close()
+            #
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for error in errors:
+            #
+            #     compressedvolume = dm.compressed_volume(rawvolume, error, 'OP', compress_data)
+            #     # print(type(compressedvolume))
+            #
+            #     # vol_dif.append(vol_diff)
+            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            #     for each_tec, mm in vol_diff.items():
+            #         for key_measure, vals in mm.items():
+            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #             d.write(",".join([str(x) for x in write_list]))
+            #             d.write('\n')
+            # d.close()
 
             print("I am done with OP")
 
@@ -763,39 +1086,59 @@ def comparison():
             d = open('app/static/results/comparison_result.csv', 'a')
             for each_tec, mm in hd.items():
                 for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
                     d.write(",".join([str(x) for x in write_list]))
 
                     # d.writerow(headers)
                     d.write('\n')
             d.close()
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            write_list = []
-            for each_tec, mm in ad.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
+            with open('app/static/results/comparison_result.csv') as csvfile:
+                r = DictReader(csvfile, skipinitialspace=True)
+                datam = [dict(d) for d in r]
+                # datam.pop(0)
+                # print(datam)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for error in errors:
+                data = {}
+                for item in datam:
+                    # print(item)
+                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
+                # print(data)
+                f = open('app/static/results/comparison_mean_result.csv', 'a')
+                for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                f.close()
 
-                compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
-                # print(type(compressedvolume))
-
-                # vol_dif.append(vol_diff)
-                vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-
-                for each_tec, mm in vol_diff.items():
-                    for key_measure, vals in mm.items():
-                        write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-                        d.write(",".join([str(x) for x in write_list]))
-                        d.write('\n')
-            d.close()
-
-            print("I am done with DP")
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # write_list = []
+            # for each_tec, mm in ad.items():
+            #     for key_measure, vals in mm.items():
+            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #         d.write(",".join([str(x) for x in write_list]))
+            #         d.write('\n')
+            # d.close()
+            #
+            # d = open('app/static/results/comparison_result.csv', 'a')
+            # for error in errors:
+            #
+            #     compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+            #     # print(type(compressedvolume))
+            #
+            #     # vol_dif.append(vol_diff)
+            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+            #
+            #     for each_tec, mm in vol_diff.items():
+            #         for key_measure, vals in mm.items():
+            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+            #             d.write(",".join([str(x) for x in write_list]))
+            #             d.write('\n')
+            # d.close()
+            #
+            # print("I am done with DP")
 
 
         # with open('app/static/results/comparison_result.csv', 'r') as csvdata:
@@ -805,17 +1148,47 @@ def comparison():
         #
         # return render_template("/public/Comparison.html", methods=method, json_result_url='/results/comparison.json')
         #
-        with open('app/static/results/comparison_result.csv') as csvrdr:
-            reader = csv.reader(csvrdr)
-            data_list = list()
-            for row in reader:
-                data_list.append(row)
-        jdata = [dict(zip(data_list[0], row)) for row in data_list]
-        jdata.pop(0)
-        result = jsonify(jdata)
-        res = make_response(result, 200)
-        print(res)
-        return res
+
+        #remove duplicates
+        with open('app/static/results/comparison_mean_result.csv', 'r', newline='') as inputfile:
+            with open('app/static/results/cleaned_comparison_mean_result.csv', 'w', newline='') as outputfile:
+                duplicatereader = csv.DictReader(inputfile, delimiter=',')
+                uniquewrite = csv.DictWriter(outputfile, fieldnames=['d_metric', 'c_method', 'measure', 'value'],
+                                             delimiter=',')
+                uniquewrite.writeheader()
+                keysread = []
+                for row in duplicatereader:
+                    key = (row['d_metric'], row['c_method'], row['measure'])
+                    if key not in keysread:
+                        # print(row)
+                        keysread.append(key)
+                        uniquewrite.writerow(row)
+            outputfile.close()
+        inputfile.close()
+
+        with open('app/static/results/cleaned_comparison_mean_result.csv') as csvfile:
+            r = DictReader(csvfile, skipinitialspace=True)
+            data = [dict(d) for d in r]
+
+            groups = []
+            uniquekeys = []
+
+            for k, g in groupby(data, lambda r: (r['d_metric'], r['c_method'])):
+                groups.append({
+                    "d_metric": k[0],
+                    "c_method": k[1],
+                    "values": [
+                        {k: v for k, v in d.items() if k not in ['d_metric', 'c_method']} for d
+                        in list(g)]
+                })
+                uniquekeys.append(k)
+        print(groups)
+
+        # result = json.dumps((groups), open('app/static/results/comparison.json', 'w+')))
+        # res = make_response(result, 200)
+        with open('app/static/results/comparison_results.json', 'w') as f:
+            json.dump(groups, f)
+        return render_template("public/comparisonbarchart.html")
 
     else:
 
