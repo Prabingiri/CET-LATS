@@ -21,6 +21,7 @@
 
 <!--</style>-->
 <script>
+
 var data1="{{ url_for('static', filename='results/comparison_results.json') }}"
 </script>
 
@@ -37,8 +38,11 @@ var data1="{{ url_for('static', filename='results/comparison_results.json') }}"
 
 
 
+
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script>
+var svg =d3.select("svg")
+svg.selectAll("*").remove();
 
 var margin = {top: 20, right: 20, bottom: 30, left: 50},
     width = 960 - margin.left - margin.right,
@@ -63,6 +67,8 @@ var yAxis = d3.svg.axis()
 
 var color = d3.scale.ordinal()
     .range(["#ca0020","#f4a582"]);
+
+
 
 var svg = d3.select('body').append("svg")
     .attr("width", width + margin.left + margin.right)
