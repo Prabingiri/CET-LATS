@@ -21,6 +21,7 @@
 
 <!--</style>-->
 <script>
+
 var data1="{{ url_for('static', filename='results/individual_results.json') }}"
 </script>
 
@@ -35,10 +36,15 @@ var data1="{{ url_for('static', filename='results/individual_results.json') }}"
  <br><br>
 <div class="body"></div>
 
-
+<script>
+d3.selectAll("svg > *").remove();
+</script>
 
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script>
+
+var svg =d3.select("svg")
+svg.selectAll("*").remove();
 
 var margin = {top: 20, right: 20, bottom: 30, left: 50},
     width = 960 - margin.left - margin.right,
