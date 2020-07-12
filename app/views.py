@@ -12,6 +12,14 @@ import os
 import csv
 import json
 from statistics import mean
+import os
+from flask import flash, url_for
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = 'app/static/dataset/rawa_data'
+ALLOWED_EXTENSIONS = {'txt', 'csv'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 import pandas as pd
 
 
@@ -37,6 +45,8 @@ def input_comparision():
     # request.form.get
     c_method = request.form.get("method")
     compression_ratio = request.form.get("ratio")
+    dataset = request.form.get("data")
+    print(dataset)
     print(c_method)
     print(compression_ratio)
 
@@ -54,7 +64,7 @@ def input_comparision():
     #
     #     req = request.get_json()
     #     dataset = req.get("dataset")
-    dataset ='6'
+    # dataset ='6'
     #     # print(dataset)
     #
     #     compression_method = req.get("compression_method")
@@ -1260,6 +1270,30 @@ def visualize():
 
 
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload_dataset', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('upload_file',
+                                    filename=filename))
+    return render_template("public/upload.html")
+
 @app.errorhandler(403)
 def forbidden(e):
     return render_template("error_handlers/forbidden.html"), 403
@@ -1279,3 +1313,9 @@ def server_error(e):
     app.logger.error("Page not found: {0}".format(request.url))
 
     return render_template("error_handlers/500.html"), 500
+
+
+
+
+
+

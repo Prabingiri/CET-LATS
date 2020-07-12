@@ -1,0 +1,21 @@
+
+{% extends "public/templates/public_template.html" %}
+{% block title %}upload data{% endblock %}
+
+
+{% block main %}
+<!--    <title>Upload new File</title>-->
+
+<div class="card">
+    <div class="card-body">
+
+    <h1>Upload new dataset</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+
+    </div>
+</div>
+
+{% endblock %}
