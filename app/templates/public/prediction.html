@@ -1,0 +1,136 @@
+{% extends "public/templates/public_template.html" %}
+{% block title %}Prediction{% endblock %}
+
+{% block main %}
+<style>
+
+.preference {
+    display: flex;
+    justify-content: space-between;
+    width: 60%;
+    margin: .5rem;
+}
+
+</style>
+<style>
+
+    input:invalid:required {
+  background-image: linear-gradient(to right, pink, lightgreen);
+}
+</style>
+<div class="container">
+  <div class="row">
+    <div class="col">
+      <h1>Prediction</h1>
+      <p ></p>
+
+  <form  id="predictForm" action="/prediction_results" method="POST" onclick = "return(validate());">
+
+            <div class="preference">
+            <label for="lon">Enter the longitute of the station</label>
+            <input type="number" name="lon" id="lon" placeholder="22.817">
+            </div>
+
+            <div class="preference">
+            <label for="lat">Enter the Latitude of the station</label>
+            <input type="number" name="lat" id="lat" placeholder="78.250">
+            </div>
+
+
+
+
+    <br><br>
+    <label for="method">Choose a prediction method:</label>
+    <select id="method" name="method" required>
+        <option ></option>
+    </select>
+      <br><br>
+    <label for="day">Choose the prediction window in days:</label>
+    <select id="day" name="day" required ></select>
+    <br><br>
+<!--    <button type="submit">Visualize</button>-->
+    <input type="submit" value="Submit" id="feedback-submit" onclick="thanks()">
+</form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+<script>
+    "use strict";
+
+    var methods = {{ methods|tojson }};
+
+    var form = $('form');
+    var method = $('select#method');
+    var day = $('select#day');
+
+    for (var key in methods) {
+        method.append($('<option/>', {'value': key, 'text': key}));
+    }
+
+    method.change(function(ev) {
+        day.empty();
+        day.append($('<option/>'));
+
+        var days = methods[method.val()];
+
+        for (var i in days) {
+            day.append($('<option/>', {'value': days[i], 'text': days[i]}));
+        }
+    });
+    function thanks(){
+    var button = document.getElementById("feedback-submit");
+    button.value = "Thanks!";
+    button.disabled = true;
+    var form = document.getElementById("predictForm");
+    JSON.stringify(Object.fromEntries(form));
+    form.submit();
+}
+
+
+
+<!--    form.submit(function(ev) {-->
+<!--           var compression_method: method.val(),-->
+<!--            var compression_ratio: ratio.val()};-->
+<!--        $.ajax({-->
+<!--        type: "POST",-->
+<!--        url: "/input_values"-->
+<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->
+<!--            compression_method: method.val(),-->
+<!--            compression_ratio: ratio.val()-->
+<!--        }),-->
+<!--        success: function(data) {-->
+<!--            alert('SUCCESS: ' + data);-->
+<!--        },-->
+
+<!--        ev.preventDefault();-->
+
+<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->
+<!--    });-->
+</script>
+
+<script type = "text/javascript">
+   <!--
+      // Form validation code will come here.
+      function validate() {
+
+         if( document.someForm.method.value == ""|| isNaN( document.someForm.method.value ) ) {
+            alert( "Please provide your name!" );
+            document.someForm.method.focus() ;
+            return false;
+         }
+         if( document.someForm.ratio.value == ""|| isNaN( document.someForm.ratio.value  ) {
+            alert( "Please provide your Email!" );
+            document.someForm.ratio.focus() ;
+            return false;
+         }
+
+         return( true );
+      }
+   //-->
+</script>
+{% endblock %}
