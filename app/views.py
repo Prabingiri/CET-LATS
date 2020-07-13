@@ -4,6 +4,7 @@ from flask import jsonify, make_response
 # from app.distance_metrics import distance_metrics
 from app.compress_methods import compress
 from app.distance_metrics_final import distance_metrics
+from app.prediction import predict_methods
 from csv import DictReader
 from itertools import groupby
 from pprint import pprint
@@ -1270,6 +1271,81 @@ def visualize():
 
 
 
+@app.route('/predict', methods=['POST','GET'])
+def prediction():
+
+    methods = {
+        'Prophet Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90],
+        'Autoregressive Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90],
+        'ARIMA Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90]
+    }
+    return render_template("public/prediction.html", methods=methods)
+
+
+
+
+@app.route("/prediction_results", methods=["POST", "GET"])
+def input_prediction():
+    # request.form.get
+    prediction_method = request.form.get("method")
+    prediction_window = int(request.form.get("day"))
+    lon = float(request.form.get("lon"))
+    lat = float(request.form.get("lat"))
+    # lat = 78.250
+    # lon = 22.817
+    print(lon)
+    print(lat)
+    print(prediction_method)
+    print(prediction_window)
+
+    def fix(user_input):
+        mapping = {"Prophet Model": "PM", "Autoregressive Model": "AR",
+                   "ARIMA Model": "ARIMA"
+                   }
+
+        return mapping.get(user_input, user_input)
+    predict_method = fix(prediction_method)
+    print(predict_method)
+    p_data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
+    # data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
+    column_names = p_data.columns
+    dates = column_names[3:]
+
+    temp_df = pd.DataFrame(columns=['date', 'temp'])
+    temp_df['date'] = dates
+    temp_df['date'] = pd.to_datetime(temp_df['date'])
+    temperature = p_data[(p_data['LAT'] == lat) & (p_data['LON'] == lon)]
+    temperature_value = temperature.iloc[0, 3:].values
+    temp_df['temp'] = temperature_value
+    temp_df = temp_df.rename(columns={'date': 'ds', 'temp': 'y'})
+    p_model = predict_methods()
+
+    if predict_method == "AR":
+
+        p_model.AR_model(prediction_window, temp_df)
+
+        return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window, file_name='/images/prediction/{0}.png'.format(predict_method))
+
+    elif predict_method == "PM":
+
+        p_model.prophet_model(prediction_window, temp_df)
+
+        return render_template("public/prediction_results.html", method=prediction_method,p_window=prediction_window, file_name='/images/prediction/{0}.png'.format(predict_method))
+
+    elif predict_method == "ARIMA":
+
+        p_model.ARIMA_model(prediction_window, temp_df)
+
+        return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window,
+                               file_name='/images/prediction/{0}.png'.format(predict_method))
+
+    else:
+        return "No Method is selected"
+
+
+
+        # return "I am okay for now with "+prediction_method+", prediction window of "+prediction_window+" days with location values "+lon+", "+lat
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -1313,6 +1389,10 @@ def server_error(e):
     app.logger.error("Page not found: {0}".format(request.url))
 
     return render_template("error_handlers/500.html"), 500
+
+
+
+
 
 
 
