@@ -22,16 +22,19 @@
                        <div>
                         <h5>Select the  dataset</h5>
                     <select name="data" id="dataset" >
-                      <option value="cluster1">dataset1</option>
-                      <option value="cluster2">dataset2</option>
-                      <option value="cluster3">dataset3</option>
-                      <option value="cluster4">dataset4</option>
-                        <option value="cluster5">dataset5</option>
-                      <option value="6">dataset6</option>
-                      <option value="7">dataset7</option>
-                      <option value="8">dataset8</option>
-                        <option value="9">dataset9</option>
-                      <option value="10">dataset10</option>
+                        {% for dataset in datasets %}
+                        <option value="{{ dataset}}" SELECTED>{{ dataset }}</option>
+                        {% endfor %} }
+{#                      <option value="cluster1">dataset1</option>#}
+{#                      <option value="cluster2">dataset2</option>#}
+{#                      <option value="cluster3">dataset3</option>#}
+{#                      <option value="cluster4">dataset4</option>#}
+{#                        <option value="cluster5">dataset5</option>#}
+{#                      <option value="6">dataset6</option>#}
+{#                      <option value="7">dataset7</option>#}
+{#                      <option value="8">dataset8</option>#}
+{#                        <option value="9">dataset9</option>#}
+{#                      <option value="10">dataset10</option>#}
 
                     </select>
                        </div>
