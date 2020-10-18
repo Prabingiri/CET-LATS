@@ -28,15 +28,18 @@ import pandas as pd
 
 @app.route('/')
 def index():
+    datasets = os.listdir(UPLOAD_FOLDER)
+    li = [x.split('.')[0] for x in datasets]
+    print(li)
     methods = {
         'Discrete Fourier Transform (DFT)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
         'Piecewise Aggregate Approximation (PAA)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
-        'Visvalingam-Whyatt Algorithm (VW)':[15, 25, 35, 50, 65, 80],
+        'Visvalingam-Whyatt Algorithm (VW)' : [15, 25, 35, 50, 65, 80],
         '(Adapted) Optimal Algorithm (OP)': [15, 25, 35, 50, 65, 80],
         '(Adapted) Douglas-Peucker Algorithm (DP)': [15, 25, 35, 50, 65, 80]
     }
 
-    return render_template("public/index.html", methods=methods)
+    return render_template("public/index.html", methods=methods, datasets=li)
 
 
 
@@ -1315,9 +1318,12 @@ def input_prediction():
     temp_df['date'] = dates
     temp_df['date'] = pd.to_datetime(temp_df['date'])
     temperature = p_data[(p_data['LAT'] == lat) & (p_data['LON'] == lon)]
+    print(temperature.iloc[0,1:].values)
     temperature_value = temperature.iloc[0, 3:].values
+    print(temperature_value)
     temp_df['temp'] = temperature_value
     temp_df = temp_df.rename(columns={'date': 'ds', 'temp': 'y'})
+    print(temp_df)
     p_model = predict_methods()
 
     if predict_method == "AR":
