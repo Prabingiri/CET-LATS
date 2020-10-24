@@ -27,13 +27,24 @@
   <form  id="predictForm" action="/prediction_results" method="POST" onclick = "return(validate());">
 
             <div class="preference">
-            <label for="lon">Enter the longitute of the station</label>
-            <input type="number" name="lon" id="lon" placeholder="22.817">
+            <label for="lon1">Enter the Longitute top left of the range</label>
+            <input type="number" name="lon1" id="lon1" placeholder="6">
             </div>
 
             <div class="preference">
-            <label for="lat">Enter the Latitude of the station</label>
-            <input type="number" name="lat" id="lat" placeholder="78.250">
+            <label for="lat1">Enter the Latitude of  top left the station</label>
+            <input type="number" name="lat1" id="lat1" placeholder="59">
+            </div>
+
+
+            <div class="preference">
+            <label for="lon2">Enter the Longitute of bottom right of the station</label>
+            <input type="number" name="lon2" id="lon2" placeholder="-9">
+            </div>
+
+            <div class="preference">
+            <label for="lat2">Enter the Latitude of bottom right the station</label>
+            <input type="number" name="lat2" id="lat2" placeholder="70">
             </div>
 
 
