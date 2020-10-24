@@ -45,14 +45,41 @@ def index():
 
 
 @app.route("/individual_results", methods=["POST", "GET"])
+
 def input_comparision():
     # request.form.get
     c_method = request.form.get("method")
     compression_ratio = request.form.get("ratio")
-    dataset = request.form.get("data")
-    print(dataset)
-    print(c_method)
-    print(compression_ratio)
+    dataset = request.form.get("dataset")
+    lat1 = 59
+    lat2 =70
+    lon1 = 6
+    lon2 = -9
+    dataset2 = pd.read_csv("app/static/dataset/rawa_data/myRes.csv", index_col=0)
+
+    # function_1(lat1,lat2, lon1,lon2):
+    #     dataset = "cluster1"
+    #     return dataset
+    #
+
+    # print(dataset)
+    # print(c_method)
+    # print(compression_ratio)
+
+    def getStations(topLeftLat, topLeftLong, bottomRightLat, bottomRightLong, data):
+        result_df = data[data['LAT'] >= topLeftLat]
+        result_df = result_df[result_df['LAT'] <= bottomRightLat]
+        result_df = result_df[result_df['LON'] <= topLeftLong]
+        result_df = result_df[result_df['LON'] >= bottomRightLong]
+        return result_df
+
+    subset_data = getStations(lat1, lon1, lat2, lon2, dataset2)
+    if len(subset_data) == 0:
+        print("Data is not available!")
+
+    print(subset_data)
+    subset_data_dict_show = subset_data.set_index('LAT')['LON'].to_dict()
+    print(subset_data_dict_show)
 
     def fix(user_input):
         mapping = {"Discrete Fourier Transform (DFT)": "DFT", "Piecewise Aggregate Approximation (PAA)": "PAA",
@@ -79,11 +106,12 @@ def input_comparision():
     if compression_method and compression_ratio is not None:
 
         #
-
-        if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
-            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+        if len(subset_data)!=0:
+        # if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
+        #     data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+            data = subset_data
             print("compression started......")
-            dm = distance_metrics(dataset)
+            dm = distance_metrics(data)
             rawvolume = dm.raw_volfor1cluster()
             print("raw volume calculated")
             headers = ['d_metric', 'c_method', 'c_ratio', 'measure', 'value']
@@ -246,7 +274,7 @@ def input_comparision():
                     d = open('app/static/results/individual_result.csv', 'a')
                     for each_tec, mm in hd.items():
                         for key_measure, vals in mm.items():
-                            write_list = ['Hausdarff Distance', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
+                            write_list = ['Hausdorff Distance', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
                             d.write(",".join([str(x) for x in write_list]))
 
                             # d.writerow(headers)
@@ -603,7 +631,7 @@ def visualization():
     print(instance)
     # data = open('app/static/dataset/rawa_data/cluster1.txt', 'r')
 
-    dataset='6'
+    dataset='cluster6'
     v = visualize(dataset)
     # v.__init__('6')
     # # visual.plotting()
@@ -1282,24 +1310,66 @@ def prediction():
         'Autoregressive Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90],
         'ARIMA Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90]
     }
+
     return render_template("public/prediction.html", methods=methods)
 
 
 
 
 @app.route("/prediction_results", methods=["POST", "GET"])
-def input_prediction():
+def input_prediction(data, compressed=False):
     # request.form.get
     prediction_method = request.form.get("method")
     prediction_window = int(request.form.get("day"))
-    lon = float(request.form.get("lon"))
-    lat = float(request.form.get("lat"))
+    lon1 = float(request.form.get("lon1"))
+    lat1 = float(request.form.get("lat1"))
+    lon2 = float(request.form.get("lon2"))
+    lat2 = float(request.form.get("lat2"))
     # lat = 78.250
     # lon = 22.817
-    print(lon)
-    print(lat)
+    print(lon1)
+    print(lat1)
+    print(lon2)
+    print(lon2)
+    print(lat2)
+    if compressed is False:
+        dataset2 = pd.read_csv("app/static/dataset/rawa_data/myRes.csv", index_col=0)
+    dataset2 = dataset2.fillna(0)
+
+    dataset2_compressed = pd.read_csv("app/static/dataset/rawa_data/myRes_compressed.csv", index_col=0)
+    # function_1(lat1,lat2, lon1,lon2):
+    #     dataset = "cluster1"
+    #     return dataset
+    #
+    print('######################33333')
+    print(dataset2)
+    print('######################33333')
+
+    # print(c_method)
+    # print(compression_ratio)
+
+    def getStations(topLeftLat, topLeftLong, bottomRightLat, bottomRightLong, data):
+        result_df = data[data['LAT'] >= topLeftLat]
+        result_df = result_df[result_df['LAT'] <= bottomRightLat]
+        result_df = result_df[result_df['LON'] <= topLeftLong]
+        result_df = result_df[result_df['LON'] >= bottomRightLong]
+        return result_df
+
+    subset_data = getStations(lat1, lon1, lat2, lon2, dataset2)
+    if len(subset_data) == 0:
+        print("Data is not available!")
+
+    print(subset_data)
+    subset_data_dict_show = subset_data.set_index('LAT')['LON'].to_dict()
+    print(subset_data_dict_show)
+    # user selected form drop down menu
+    selected_station_lat = 62.017
+    selected_station_lon = -6.767
+
+
     print(prediction_method)
     print(prediction_window)
+
 
     def fix(user_input):
         mapping = {"Prophet Model": "PM", "Autoregressive Model": "AR",
@@ -1307,18 +1377,27 @@ def input_prediction():
                    }
 
         return mapping.get(user_input, user_input)
+
+
+    # station_data = choose_a_station(subset_data)
+
     predict_method = fix(prediction_method)
     print(predict_method)
-    p_data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
+    # p_data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
     # data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
+    p_data = subset_data
     column_names = p_data.columns
     dates = column_names[3:]
-
+    # print("############################")
+    print(p_data)
     temp_df = pd.DataFrame(columns=['date', 'temp'])
     temp_df['date'] = dates
     temp_df['date'] = pd.to_datetime(temp_df['date'])
-    temperature = p_data[(p_data['LAT'] == lat) & (p_data['LON'] == lon)]
-    print(temperature.iloc[0,1:].values)
+    temperature = p_data[(p_data['LAT'] == selected_station_lat) & (p_data['LON'] == selected_station_lon)]
+    print("!!!!!!!!!!!!!!!!!!!111")
+    print(temperature)
+    print("!!!!!!!!!!!!!!!!!!!!!!")
+    # print(temperature.iloc[0,1:].values)
     temperature_value = temperature.iloc[0, 3:].values
     print(temperature_value)
     temp_df['temp'] = temperature_value
