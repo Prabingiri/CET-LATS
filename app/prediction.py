@@ -32,17 +32,20 @@ class predict_methods():
         temp_df['date'] = pd.to_datetime(temp_df['date'])
         temperature = data[(data['LAT'] == lat) & (data['LON'] == lon)]
         temperature_value = temperature.iloc[0, 3:].values
+        # print("here it goes")
+        # print(temperature_value)
         temp_df['temp'] = temperature_value
         temp_df = temp_df.rename(columns={'date': 'ds', 'temp': 'y'})
         return temp_df
 
     # # Prophet Model
 
-    def prophet_model(self,prediction_time_window, temp_df):
+    def prophet_model(self, prediction_time_window, temp_df):
         # temp_df = self.dataExtractor(lat, lon)
 
         # Split the data to train and test data
         # i.e. Take data of the 11 months as training data and last month as the test data
+        plt.clf()
         prediction_size = prediction_time_window
         train_data = temp_df[:-prediction_size]
         test_data = temp_df[-prediction_size:]
@@ -82,6 +85,7 @@ class predict_methods():
 
         # Date time temperature has two columns. The first column is the dates (01-01-2019 to 30-12-2019) and the second column
         # is the temperature. All these data are from one station.
+        plt.clf()
         series = temp_df.set_index(['ds']).squeeze()
         # split dataset
         X = series.values
@@ -111,9 +115,10 @@ class predict_methods():
 
     # # ARIMA Model
 
-    def ARIMA_model(self, prediction_time_window,temp_df):
+    def ARIMA_model(self, prediction_time_window, temp_df):
         # load dataset
         # temp_df = self.dataExtractor(lat, lon)
+        plt.clf()
         series = temp_df.set_index(['ds']).squeeze()
         X = series.values
         train, test = X[: len(X) - prediction_time_window], X[len(X) - prediction_time_window:]
