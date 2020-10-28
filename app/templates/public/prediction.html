@@ -24,40 +24,53 @@
       <h1>Prediction</h1>
       <p ></p>
 
-  <form  id="predictForm" action="/prediction_results" method="POST" onclick = "return(validate());">
+  <form  id="predictForm" action="/prediction_results">
 
-            <div class="preference">
+        <div id = select_dataset>
+        <div class="preference">
             <label for="lon1">Enter the Longitute top left of the range</label>
-            <input type="number" name="lon1" id="lon1" placeholder="6">
+            <input type="number" name="lon1" id="lon1" placeholder="6" onkeypress="getSavedValue(this)">
             </div>
 
             <div class="preference">
             <label for="lat1">Enter the Latitude of  top left the station</label>
-            <input type="number" name="lat1" id="lat1" placeholder="59">
+            <input type="number" name="lat1" id="lat1" placeholder="59" onkeypress="getSavedValue(this)">
             </div>
 
 
             <div class="preference">
             <label for="lon2">Enter the Longitute of bottom right of the station</label>
-            <input type="number" name="lon2" id="lon2" placeholder="-9">
+            <input type="number" name="lon2" id="lon2" placeholder="-9" onkeypress="getSavedValue(this)">
             </div>
 
             <div class="preference">
             <label for="lat2">Enter the Latitude of bottom right the station</label>
-            <input type="number" name="lat2" id="lat2" placeholder="70">
+            <input type="number" name="lat2" id="lat2" placeholder="70" onkeypress="getSavedValue(this)">
             </div>
+
+            <input type="button" id="submit-datarange" value="SELECT" class="btn btn-primary">
+            </div>
+
+
+{#            <div id = "subdata">#}
+
+            <hr>
+
+            <select  name="subdata" id="subdata">
+            <option value='' disabled='disabled' selected='selected'  onkeypress="getSavedValue(this)">Please select a Station</option>
+            </select>
 
 
 
 
     <br><br>
     <label for="method">Choose a prediction method:</label>
-    <select id="method" name="method" required>
+    <select id="method" name="method" required onkeypress="getSavedValue(this)">
         <option ></option>
     </select>
       <br><br>
     <label for="day">Choose the prediction window in days:</label>
-    <select id="day" name="day" required ></select>
+    <select id="day" name="day" required onkeypress="getSavedValue(this)"></select>
     <br><br>
 <!--    <button type="submit">Visualize</button>-->
     <input type="submit" value="Submit" id="feedback-submit" onclick="thanks()">
@@ -70,6 +83,53 @@
 
 {% block script %}
 <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script>
+
+        $("#submit-datarange").click(function (){
+            var lon1 = $("#lon1").val()
+            var lat1 = $("#lat1").val()
+            var lon2 = $("#lon2").val()
+            var lat2 = $("#lat2").val()
+                $.ajax({
+                type: "GET",
+                url: "/select_dataset_range",
+                {#data: 'selected_table=' + table,#}
+                    data: {"lon1":lon1, "lat1":lat1, "lon2":lon2, "lat2":lat2},
+                cache: 'False',
+                dataType: 'json',
+
+                success:function(data){
+                        {# console.log("miju")#}
+                        {#alert("muji")#}
+                    console.log(data)
+                    var attr = data
+                    var $mySelect = $('#subdata');
+//
+                    $.each(attr, function(key, value) {
+                      var $option = $("<option/>", {
+                        value: key +','+value,
+                        text: key +','+value,
+                      });
+                      $mySelect.append($option);
+                    });
+
+
+
+                },
+                error: function (error){
+                console.log("I never become success")
+                    console.log(error)
+                    }
+             });
+
+
+
+            {#alert(lat1)#}
+        {#$("#txtQueries").toggle();#}
+        {#    $(this).val( $(this).val() == 'Show Query' ? 'Hide Query' : 'Show Query' );#}
+
+    });
+    </script>
 <script>
     "use strict";
 
@@ -110,38 +170,69 @@
 <!--        $.ajax({-->
 <!--        type: "POST",-->
 <!--        url: "/input_values"-->
-<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->
-<!--            compression_method: method.val(),-->
-<!--            compression_ratio: ratio.val()-->
-<!--        }),-->
-<!--        success: function(data) {-->
-<!--            alert('SUCCESS: ' + data);-->
-<!--        },-->
+{#<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->#}
+{#<!--            compression_method: method.val(),-->#}
+{#<!--            compression_ratio: ratio.val()-->#}
+{#<!--        }),-->#}
+{#<!--        success: function(data) {-->#}
+{#<!--            alert('SUCCESS: ' + data);-->#}
+{#<!--        },-->#}
+{##}
+{#<!--        ev.preventDefault();-->#}
+{##}
+{#<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->#}
+{#<!--    });-->#}
+{#</script>#}
 
-<!--        ev.preventDefault();-->
+{#<script type = "text/javascript">#}
+{#   <!--#}
+{#      // Form validation code will come here.#}
+{#      function validate() {#}
+{##}
+{#         if( document.someForm.method.value == ""|| isNaN( document.someForm.method.value ) ) {#}
+{#            alert( "Please provide your name!" );#}
+{#            document.someForm.method.focus() ;#}
+{#            return false;#}
+{#         }#}
+{#         if( document.someForm.ratio.value == ""|| isNaN( document.someForm.ratio.value  ) {#}
+{#            alert( "Please provide your Email!" );#}
+{#            document.someForm.ratio.focus() ;#}
+{#            return false;#}
+{#         }#}
+{##}
+{#         return( true );#}
+{#      }#}
+{#   //-->#}
+{#</script>#}
+    </script>
 
-<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->
-<!--    });-->
-</script>
+    <script type="text/javascript">
+        document.getElementById("lon1").value = getSavedValue("lon1");    // set the value to this input
+        document.getElementById("lat1").value = getSavedValue("lat1");
+        document.getElementById("lon2").value = getSavedValue("lon2");   // set the value to this input
+        document.getElementById("lat2").value = getSavedValue("lat2");
 
-<script type = "text/javascript">
-   <!--
-      // Form validation code will come here.
-      function validate() {
+        document.getElementById("method").value = getSavedValue("method");    // set the value to this input
+        document.getElementById("day").value = getSavedValue("day");
+        document.getElementById("subdata").value = getSavedValue("subdata");   // set the value to this input
+        {#document.getElementById("lat2").value = getSavedValue("lat2"); // set the value to this input#}
 
-         if( document.someForm.method.value == ""|| isNaN( document.someForm.method.value ) ) {
-            alert( "Please provide your name!" );
-            document.someForm.method.focus() ;
-            return false;
-         }
-         if( document.someForm.ratio.value == ""|| isNaN( document.someForm.ratio.value  ) {
-            alert( "Please provide your Email!" );
-            document.someForm.ratio.focus() ;
-            return false;
-         }
+// set the value to this input
+        /* Here you can add more inputs to set value. if it's saved */
 
-         return( true );
-      }
-   //-->
+        //Save the value function - save it to localStorage as (ID, VALUE)
+        function saveValue(e){
+            var id = e.id;  // get the sender's id to save it .
+            var val = e.value; // get the value.
+            localStorage.setItem(id, val);// Every time user writing something, the localStorage's value will override .
+        }
+
+        //get the saved value function - return the value of "v" from localStorage.
+        function getSavedValue  (v){
+            if (!localStorage.getItem(v)) {
+                return "";// You can change this to your defualt value.
+            }
+            return localStorage.getItem(v);
+        }
 </script>
 {% endblock %}
