@@ -51,7 +51,7 @@ def input_comparision():
     # request.form.get
     c_method = request.form.get("method")
     compression_ratio = request.form.get("ratio")
-    dataset = request.form.get("dataset")
+    dataset = request.form.get("data")
     # lat1 = 59
     # lat2 =70
     # lon1 = 6
@@ -63,9 +63,9 @@ def input_comparision():
     #     return dataset
     #
 
-    # print(dataset)
-    # print(c_method)
-    # print(compression_ratio)
+    print(dataset)
+    print(c_method)
+    print(compression_ratio)
 
     # def getStations(topLeftLat, topLeftLong, bottomRightLat, bottomRightLong, data):
     #     result_df = data[data['LAT'] >= topLeftLat]
@@ -112,7 +112,7 @@ def input_comparision():
             data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
             # data = subset_data
             print("compression started......")
-            dm = distance_metrics(data)
+            dm = distance_metrics(dataset)
             rawvolume = dm.raw_volfor1cluster()
             print("raw volume calculated")
             headers = ['d_metric', 'c_method', 'c_ratio', 'measure', 'value']
@@ -632,7 +632,7 @@ def visualization():
     print(instance)
     # data = open('app/static/dataset/rawa_data/cluster1.txt', 'r')
 
-    dataset='cluster6'
+    dataset = 'cluster6'
     v = visualize(dataset)
     # v.__init__('6')
     # # visual.plotting()
@@ -725,7 +725,7 @@ def comparison():
     methods = request.form.getlist('check')
     print(methods)
     dataset = request.form.get('data')
-    # print(methods, dataset)
+    print(methods, dataset)
     # Compress Ratio for PAA and DFT
 
     rat_ios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
@@ -738,7 +738,7 @@ def comparison():
     print(ratios)
     print(errors)
 
-    if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
+    if os.path.exists('app/static/dataset/rawa_data/'+dataset+'.txt'):
         # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + dataset + '.txt', 'r')
         print("compression started......")
         dm = distance_metrics(dataset)
@@ -1030,7 +1030,7 @@ def comparison():
             print("I am done with DFT")
 
         if 'OP' in method:
-            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+            data = open('app/static/dataset/rawa_data/'+dataset+'.txt', 'r')
 
             compress_data = {}
             for datapoint in data:
@@ -1106,7 +1106,7 @@ def comparison():
             print("I am done with OP")
 
         if 'DP' in method:
-            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+            data = open('app/static/dataset/rawa_data/'+dataset+'.txt', 'r')
 
             compress_data = {}
             for datapoint in data:
@@ -1294,8 +1294,8 @@ def visualize():
 
         #
 
-        if os.path.exists('app/static/dataset/rawa_data/'+dataset+ '.txt'):
-            data = open('app/static/dataset/rawa_data/'+dataset+ '.txt', 'r')
+        if os.path.exists('app/static/dataset/rawa_data/'+dataset+'.txt'):
+            data = open('app/static/dataset/rawa_data/'+dataset+'.txt', 'r')
             print("compression started......")
             dm = distance_metrics(dataset)
             rawvolume = dm.raw_volfor1cluster()
@@ -1343,6 +1343,11 @@ def getsinglestation():
             return make_response(jsonify(msg), 200)
 
         # print(subset_data)
+        with open("app/static/dataset/rawa_data/selected_subset.txt", 'w') as f:
+            f.write(
+                subset_data.to_csv(header=False, index=False, sep=',')
+            )
+
         subset_data_dict_show = subset_data.set_index('LAT')['LON'].to_dict()
         # print(subset_data_dict_show)
 
@@ -1522,6 +1527,51 @@ def upload_file():
             return redirect(url_for('upload_file',
                                     filename=filename))
     return render_template("public/upload.html")
+
+
+@app.route('/select_sub_data', methods=["POST", "GET"])
+def gettin_subdata():
+    dataset2 = pd.read_csv("app/static/dataset/rawa_data/myRes.csv", index_col=0)
+    dataset2 = dataset2.fillna(0)
+    if request.method == "POST":
+        # table = request.args.get('selected_table')
+        # print(table)
+        # table = request.form['table1']
+        print("=================================")
+        lon1 = request.form.get('lon1')
+        lat1 = request.form.get('lat1')
+        lon2 = request.form.get('lon2')
+        lat2 = request.form.get('lat2')
+        subset_data = getStations(float(lat1), float(lon1), float(lat2), float(lon2), dataset2)
+        if len(subset_data) == 0:
+            print("Data is not available!")
+            msg = "No data is available in the given range, please try again"
+            return make_response(jsonify(msg), 200)
+
+        # print(subset_data)
+        with open("app/static/dataset/rawa_data/selected_subset.txt", 'w') as f:
+            f.write(
+                subset_data.to_csv(header=False, index=False, sep=',')
+            )
+
+
+
+        # subset_data_dict_show = subset_data.set_index('LAT')['LON'].to_dict()
+        # print(subset_data_dict_show)
+
+        # print(lon1)
+        #
+        print("==================")
+        msg = "Your subdata from selected range is created and available in dropdownmenus as selected_subset"
+        # print(table)
+        # attributes = request.args.get('attr')
+        #
+        # att = json.loads(attributes)
+        # print(att)
+        # print(len(attribu
+        json_result = "pra"
+        return make_response(jsonify(msg))
+    return render_template("public/select_subdata.html")
 
 @app.errorhandler(403)
 def forbidden(e):
