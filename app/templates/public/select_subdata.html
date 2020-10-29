@@ -1,0 +1,146 @@
+{% extends "public/templates/public_template.html" %}
+{% block title %}createdata
+
+{% endblock %}
+
+{% block main %}
+
+     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+    .closebtn {
+  margin-left: 15px;
+  color: black;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: red;
+}
+
+    </style>
+
+
+<div class="container">
+    <div class="card2" id="selectsubdata">
+    <div class="card-body">
+<p>SELECT THE subdata OF YOUR CHOICE by entering range of values</p>
+                <div id = select_dataset>
+        <div class="preference">
+            <label for="lon1">Enter the Longitute top left of the range</label>
+            <input type="number" name="lon1" id="lon1" placeholder="6" >
+            </div>
+
+            <div class="preference">
+            <label for="lat1">Enter the Latitude of  top left the station</label>
+            <input type="number" name="lat1" id="lat1" placeholder="59" >
+            </div>
+
+
+            <div class="preference">
+            <label for="lon2">Enter the Longitute of bottom right of the station</label>
+            <input type="number" name="lon2" id="lon2" placeholder="-9" >
+            </div>
+
+            <div class="preference">
+            <label for="lat2">Enter the Latitude of bottom right the station</label>
+            <input type="number" name="lat2" id="lat2" placeholder="70">
+            </div>
+
+            <input type="button" id="submit-datarange" value="SELECT" class="btn btn-primary">
+            </div>
+        <hr>
+
+<div class="alert alert-success" id="success1" style="display: none">
+    <strong>Success!</strong>
+      <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+  </div>
+  <div class="alert alert-info" id="info1" style="display: none">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+    <strong>Info!</strong>
+  </div>
+  <div class="alert alert-warning" id="warning1" style="display: none">
+  <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+    <strong>Warning!</strong> This alert box could indicate a warning that might need attention.
+  </div>
+  <div class="alert alert-danger" id="danger1" style="display: none">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+    <strong>Danger!</strong> This alert box could indicate a dangerous or potentially negative action.
+  </div>
+
+    </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+
+    <script>
+
+        $("#submit-datarange").click(function (){
+            var lon1 = $("#lon1").val()
+            var lat1 = $("#lat1").val()
+            var lon2 = $("#lon2").val()
+            var lat2 = $("#lat2").val()
+                $.ajax({
+                type: "POST",
+                url: "/select_sub_data",
+                {#data: 'selected_table=' + table,#}
+                    data: {"lon1":lon1, "lat1":lat1, "lon2":lon2, "lat2":lat2},
+                cache: 'False',
+                dataType: 'json',
+
+                success:function(data){
+                        {# console.log("miju")#}
+                    var msg = data
+                    $('#success1').append(document.createTextNode(msg)).show();
+                        {#alert("muji")#}
+                    alert("data available in dropdown menu")
+                    {#data.appentTo("#success1")#}
+                    {#console.log(data)#}
+{#                    var attr = data#}
+{#                    var $mySelect = $('#subdata');#}
+{#//#}
+{#                    $.each(attr, function(key, value) {#}
+{#                      var $option = $("<option/>", {#}
+{#                        value: key +','+value,#}
+{#                        text: key +','+value,#}
+{#                      });#}
+{#                      $mySelect.append($option);#}
+{#                    });#}
+
+
+
+                },
+                      statusCode: {
+                    204: function(msg) {
+                        var msg = msg
+                        $('#info1').append(document.createTextNode(msg)).show();
+
+                {#if(window.console) console.log(xhr.responseText);#}
+    }
+  },
+                error: function (error){
+                        console.log(error)
+                    var msg = error
+                    $('#danger1').append(document.createTextNode(msg)).show();
+                    }
+             });
+
+
+
+            {#alert(lat1)#}
+        {#$("#txtQueries").toggle();#}
+        {#    $(this).val( $(this).val() == 'Show Query' ? 'Hide Query' : 'Show Query' );#}
+
+    });
+    </script>
+
+{% endblock %}
