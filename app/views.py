@@ -16,12 +16,15 @@ from statistics import mean
 import os
 from flask import flash, url_for
 from werkzeug.utils import secure_filename
+import numpy as np
 
 UPLOAD_FOLDER = 'app/static/dataset/rawa_data'
 ALLOWED_EXTENSIONS = {'txt', 'csv'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 import pandas as pd
+
+
 
 
 
@@ -621,18 +624,21 @@ def input_comparision():
 
 @app.route("/visualize")
 def TIN_visualize():
-    return render_template("public/visualization.html")
+    datasets = os.listdir(UPLOAD_FOLDER)
+    li = [x.split('.')[0] for x in datasets]
+    return render_template("public/visualization.html", datasets=li)
 
 @app.route("/visualize_results", methods=["POST"])
 def visualization():
     from app.visualization import visualize
     compression_method = request.form.get("compression")
     instance = request.form.get("s_instance")
+    dataset = request.form.get("data")
     print(compression_method)
     print(instance)
     # data = open('app/static/dataset/rawa_data/cluster1.txt', 'r')
 
-    dataset = 'cluster6'
+    # dataset = 'cluster6'
     v = visualize(dataset)
     # v.__init__('6')
     # # visual.plotting()
@@ -685,7 +691,9 @@ def visualization():
 
 @app.route("/compare_compression")
 def compare_methods():
-    return render_template("public/compare_methods.html")
+    datasets = os.listdir(UPLOAD_FOLDER)
+    li = [x.split('.')[0] for x in datasets]
+    return render_template("public/compare_methods.html", datasets=li)
 
 
 
@@ -723,9 +731,11 @@ def comparison():
     # max_time = request.form.get('max_time')
     # compress_data=dict()
     methods = request.form.getlist('check')
+    d_method = request.form.getlist('d_method')
     print(methods)
     dataset = request.form.get('data')
-    print(methods, dataset)
+    print(methods, dataset, d_method)
+    print(d_method)
     # Compress Ratio for PAA and DFT
 
     rat_ios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
@@ -737,6 +747,7 @@ def comparison():
     errors = err_ors
     print(ratios)
     print(errors)
+    d_method = np.array(d_method)
 
     if os.path.exists('app/static/dataset/rawa_data/'+dataset+'.txt'):
         # data = open('/home/prabin/Sigspatial2020/CET-LATS/app/static/dataset/rawa_data/' + dataset + '.txt', 'r')
@@ -778,35 +789,124 @@ def comparison():
             hd = dm.Hausdarff_distance(rawvolume, compress_data)
             ad = dm.Angular_diff(rawvolume, compress_data)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in hd.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
 
-                    # d.writerow(headers)
-                    d.write('\n')
-            d.close()
-            with open('app/static/results/comparison_result.csv') as csvfile:
-                r = DictReader(csvfile, skipinitialspace=True)
-                datam = [dict(d) for d in r]
-                # datam.pop(0)
-                # print(datam)
+            if d_method=='HD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for each_tec, mm in hd.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
 
-                data = {}
-                for item in datam:
-                    # print(item)
-                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
-                # print(data)
-                f = open('app/static/results/comparison_mean_result.csv', 'a')
-                for k, v in data.items():
+                        # d.writerow(headers)
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
                         # print(data.items())
                         ave = mean(float(n) if n else 0 for n in v)
                         write_list = [*k, ave]
                         f.write(",".join([str(x) for x in write_list]))
                         f.write('\n')
-                    # print(k, ave)
-                f.close()
+                    f.close()
+
+                # with open('app/static/results/comparison_result.csv') as csvfile:
+                #     r = DictReader(csvfile, skipinitialspace=True)
+                #     datam = [dict(d) for d in r]
+                #     # datam.pop(0)
+                #     # print(datam)
+                #
+                #     data = {}
+                #     for item in datam:
+                #         # print(item)
+                #         data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                #     # print(data)
+                #     f = open('app/static/results/comparison_mean_result.csv', 'a')
+                #     for k, v in data.items():
+                #         # print(data.items())
+                #         ave = mean(float(n) if n else 0 for n in v)
+                #         write_list = [*k, ave]
+                #         f.write(",".join([str(x) for x in write_list]))
+                #         f.write('\n')
+                #     f.close()
+            elif d_method =='AD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                write_list = []
+                for each_tec, mm in ad.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['AD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            elif d_method =='VD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for error in errors:
+
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    # print(type(compressedvolume))
+
+                    # vol_dif.append(vol_diff)
+                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                d.close()
+
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            else:
+                print("No distance metric is selected")
 
 
 
@@ -855,44 +955,124 @@ def comparison():
             hd = dm.Hausdarff_distance(rawvolume, compress_data)
             ad = dm.Angular_diff(rawvolume, compress_data)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in hd.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0],  key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
-            # with open('app/static/results/individual_result.csv') as csvfile:
-            #     r = DictReader(csvfile)
-            #     final = []
-            #     for k, v in groupby(r, lambda r: (r['d_metric'], r['c_method'], r['measure'])):
-            #         lst = list(v)
-            #         avg = sum(x['value'] for x in lst) / float(len(lst))
-            #         lst[0][3] = round(avg, 3)
-            #         final.append(lst[0])
-            #     print(final)
 
-            with open('app/static/results/comparison_result.csv') as csvfile:
-                r = DictReader(csvfile, skipinitialspace=True)
-                datam = [dict(d) for d in r]
-                # datam.pop(0)
-                # print(datam)
+            if d_method=='HD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for each_tec, mm in hd.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
 
-                data = {}
-                for item in datam:
-                    # print(item)
-                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
-                # print(data)
-                f = open('app/static/results/comparison_mean_result.csv', 'a')
-                for k, v in data.items():
+                        # d.writerow(headers)
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
                         # print(data.items())
                         ave = mean(float(n) if n else 0 for n in v)
                         write_list = [*k, ave]
                         f.write(",".join([str(x) for x in write_list]))
                         f.write('\n')
-                    # print(k, ave)
-                f.close()
+                    f.close()
 
+                # with open('app/static/results/comparison_result.csv') as csvfile:
+                #     r = DictReader(csvfile, skipinitialspace=True)
+                #     datam = [dict(d) for d in r]
+                #     # datam.pop(0)
+                #     # print(datam)
+                #
+                #     data = {}
+                #     for item in datam:
+                #         # print(item)
+                #         data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                #     # print(data)
+                #     f = open('app/static/results/comparison_mean_result.csv', 'a')
+                #     for k, v in data.items():
+                #         # print(data.items())
+                #         ave = mean(float(n) if n else 0 for n in v)
+                #         write_list = [*k, ave]
+                #         f.write(",".join([str(x) for x in write_list]))
+                #         f.write('\n')
+                #     f.close()
+            elif d_method =='AD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                write_list = []
+                for each_tec, mm in ad.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['AD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            elif d_method =='VD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for error in errors:
+
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    # print(type(compressedvolume))
+
+                    # vol_dif.append(vol_diff)
+                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                d.close()
+
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            else:
+                print("No distance metric is selected")
             #     data = [dict(d) for d in r]
             #
             #     groups = []
@@ -977,33 +1157,124 @@ def comparison():
             hd = dm.Hausdarff_distance(rawvolume, compress_data)
             ad = dm.Angular_diff(rawvolume, compress_data)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in hd.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
-                    d.write('\n')
-            d.close()
 
-            with open('app/static/results/comparison_result.csv') as csvfile:
-                r = DictReader(csvfile, skipinitialspace=True)
-                datam = [dict(d) for d in r]
-                # datam.pop(0)
-                # print(datam)
+            if d_method=='HD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for each_tec, mm in hd.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
 
-                data = {}
-                for item in datam:
-                    # print(item)
-                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
-                # print(data)
-                f = open('app/static/results/comparison_mean_result.csv', 'a')
-                for k, v in data.items():
+                        # d.writerow(headers)
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
                         # print(data.items())
                         ave = mean(float(n) if n else 0 for n in v)
                         write_list = [*k, ave]
                         f.write(",".join([str(x) for x in write_list]))
                         f.write('\n')
-                f.close()
+                    f.close()
+
+                # with open('app/static/results/comparison_result.csv') as csvfile:
+                #     r = DictReader(csvfile, skipinitialspace=True)
+                #     datam = [dict(d) for d in r]
+                #     # datam.pop(0)
+                #     # print(datam)
+                #
+                #     data = {}
+                #     for item in datam:
+                #         # print(item)
+                #         data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                #     # print(data)
+                #     f = open('app/static/results/comparison_mean_result.csv', 'a')
+                #     for k, v in data.items():
+                #         # print(data.items())
+                #         ave = mean(float(n) if n else 0 for n in v)
+                #         write_list = [*k, ave]
+                #         f.write(",".join([str(x) for x in write_list]))
+                #         f.write('\n')
+                #     f.close()
+            elif d_method =='AD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                write_list = []
+                for each_tec, mm in ad.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['AD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            elif d_method =='VD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for error in errors:
+
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    # print(type(compressedvolume))
+
+                    # vol_dif.append(vol_diff)
+                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                d.close()
+
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            else:
+                print("No distance metric is selected")
 
             # d = open('app/static/results/comparison_result.csv', 'a')
             # for each_tec, mm in ad.items():
@@ -1050,34 +1321,124 @@ def comparison():
             hd = dm.Hausdarff_distance(rawvolume, compress_data)
             ad = dm.Angular_diff(rawvolume, compress_data)
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in hd.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0],  key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
 
-                    # d.writerow(headers)
-                    d.write('\n')
-            d.close()
-            with open('app/static/results/comparison_result.csv') as csvfile:
-                r = DictReader(csvfile, skipinitialspace=True)
-                datam = [dict(d) for d in r]
-                # datam.pop(0)
-                # print(datam)
+            if d_method=='HD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for each_tec, mm in hd.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
 
-                data = {}
-                for item in datam:
-                    # print(item)
-                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
-                # print(data)
-                f = open('app/static/results/comparison_mean_result.csv', 'a')
-                for k, v in data.items():
+                        # d.writerow(headers)
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
                         # print(data.items())
                         ave = mean(float(n) if n else 0 for n in v)
                         write_list = [*k, ave]
                         f.write(",".join([str(x) for x in write_list]))
                         f.write('\n')
-                f.close()
+                    f.close()
+
+                # with open('app/static/results/comparison_result.csv') as csvfile:
+                #     r = DictReader(csvfile, skipinitialspace=True)
+                #     datam = [dict(d) for d in r]
+                #     # datam.pop(0)
+                #     # print(datam)
+                #
+                #     data = {}
+                #     for item in datam:
+                #         # print(item)
+                #         data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                #     # print(data)
+                #     f = open('app/static/results/comparison_mean_result.csv', 'a')
+                #     for k, v in data.items():
+                #         # print(data.items())
+                #         ave = mean(float(n) if n else 0 for n in v)
+                #         write_list = [*k, ave]
+                #         f.write(",".join([str(x) for x in write_list]))
+                #         f.write('\n')
+                #     f.close()
+            elif d_method =='AD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                write_list = []
+                for each_tec, mm in ad.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['AD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            elif d_method =='VD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for error in errors:
+
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    # print(type(compressedvolume))
+
+                    # vol_dif.append(vol_diff)
+                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                d.close()
+
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
+            #
+            else:
+                print("No distance metric is selected")
 
             # d = open('app/static/results/comparison_result.csv', 'a')
             # for each_tec, mm in ad.items():
@@ -1125,62 +1486,127 @@ def comparison():
 
             hd = dm.Hausdarff_distance(rawvolume, compress_data)
             ad = dm.Angular_diff(rawvolume, compress_data)
+            print(d_method)
+            # d_method = np.array(d_method)
+            if d_method=='HD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for each_tec, mm in hd.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
 
-            d = open('app/static/results/comparison_result.csv', 'a')
-            for each_tec, mm in hd.items():
-                for key_measure, vals in mm.items():
-                    write_list = ['HD', each_tec[0], key_measure, sum(vals) / len(vals)]
-                    d.write(",".join([str(x) for x in write_list]))
+                        # d.writerow(headers)
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
 
-                    # d.writerow(headers)
-                    d.write('\n')
-            d.close()
-
-            with open('app/static/results/comparison_result.csv') as csvfile:
-                r = DictReader(csvfile, skipinitialspace=True)
-                datam = [dict(d) for d in r]
-                # datam.pop(0)
-                # print(datam)
-
-                data = {}
-                for item in datam:
-                    # print(item)
-                    data.setdefault((item['d_metric'], item['c_method'], item['measure']),[]).append(item['value'])
-                # print(data)
-                f = open('app/static/results/comparison_mean_result.csv', 'a')
-                for k, v in data.items():
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
                         # print(data.items())
                         ave = mean(float(n) if n else 0 for n in v)
                         write_list = [*k, ave]
                         f.write(",".join([str(x) for x in write_list]))
                         f.write('\n')
-                f.close()
+                    f.close()
 
-            # d = open('app/static/results/comparison_result.csv', 'a')
-            # write_list = []
-            # for each_tec, mm in ad.items():
-            #     for key_measure, vals in mm.items():
-            #         write_list = ['AD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-            #         d.write(",".join([str(x) for x in write_list]))
-            #         d.write('\n')
-            # d.close()
+                # with open('app/static/results/comparison_result.csv') as csvfile:
+                #     r = DictReader(csvfile, skipinitialspace=True)
+                #     datam = [dict(d) for d in r]
+                #     # datam.pop(0)
+                #     # print(datam)
+                #
+                #     data = {}
+                #     for item in datam:
+                #         # print(item)
+                #         data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                #     # print(data)
+                #     f = open('app/static/results/comparison_mean_result.csv', 'a')
+                #     for k, v in data.items():
+                #         # print(data.items())
+                #         ave = mean(float(n) if n else 0 for n in v)
+                #         write_list = [*k, ave]
+                #         f.write(",".join([str(x) for x in write_list]))
+                #         f.write('\n')
+                #     f.close()
+            elif d_method =='AD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                write_list = []
+                for each_tec, mm in ad.items():
+                    for key_measure, vals in mm.items():
+                        write_list = ['AD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                        d.write(",".join([str(x) for x in write_list]))
+                        d.write('\n')
+                d.close()
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
             #
-            # d = open('app/static/results/comparison_result.csv', 'a')
-            # for error in errors:
+            elif d_method =='VD':
+                d = open('app/static/results/comparison_result.csv', 'a')
+                for error in errors:
+
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    # print(type(compressedvolume))
+
+                    # vol_dif.append(vol_diff)
+                    vol_diff = dm.volume_difference(rawvolume, compressedvolume)
+
+                    for each_tec, mm in vol_diff.items():
+                        for key_measure, vals in mm.items():
+                            write_list = ['VD', each_tec[0], key_measure, sum(vals) / len(vals)]
+                            d.write(",".join([str(x) for x in write_list]))
+                            d.write('\n')
+                d.close()
+
+                with open('app/static/results/comparison_result.csv') as csvfile:
+                    r = DictReader(csvfile, skipinitialspace=True)
+                    datam = [dict(d) for d in r]
+                    # datam.pop(0)
+                    # print(datam)
+
+                    data = {}
+                    for item in datam:
+                        # print(item)
+                        data.setdefault((item['d_metric'], item['c_method'], item['measure']), []).append(item['value'])
+                    # print(data)
+                    f = open('app/static/results/comparison_mean_result.csv', 'a')
+                    for k, v in data.items():
+                        # print(data.items())
+                        ave = mean(float(n) if n else 0 for n in v)
+                        write_list = [*k, ave]
+                        f.write(",".join([str(x) for x in write_list]))
+                        f.write('\n')
+                    f.close()
             #
-            #     compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
-            #     # print(type(compressedvolume))
-            #
-            #     # vol_dif.append(vol_diff)
-            #     vol_diff = dm.volume_difference(rawvolume, compressedvolume)
-            #
-            #     for each_tec, mm in vol_diff.items():
-            #         for key_measure, vals in mm.items():
-            #             write_list = ['VD', each_tec[0], each_tec[1], key_measure, sum(vals) / len(vals)]
-            #             d.write(",".join([str(x) for x in write_list]))
-            #             d.write('\n')
-            # d.close()
-            #
+            else:
+                print("No distance metric is selected")
+
+
             # print("I am done with DP")
 
 
@@ -1365,7 +1791,13 @@ def getsinglestation():
 @app.route('/predict', methods=['POST','GET'])
 def prediction():
 
-
+    methods1 = {
+        'Discrete Fourier Transform (DFT)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
+        'Piecewise Aggregate Approximation (PAA)': [0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
+        'Visvalingam-Whyatt Algorithm (VW)' : [15, 25, 35, 50, 65, 80],
+        '(Adapted) Optimal Algorithm (OP)': [15, 25, 35, 50, 65, 80],
+        '(Adapted) Douglas-Peucker Algorithm (DP)': [15, 25, 35, 50, 65, 80]
+    }
 
     methods = {
         'Prophet Model': [2, 5, 7, 8, 10, 15, 20, 30, 40, 60, 75, 90],
@@ -1376,7 +1808,7 @@ def prediction():
 
 
 
-    return render_template("public/prediction.html", methods=methods)
+    return render_template("public/prediction.html", methods=methods, methods1=methods1)
 
 
 
@@ -1396,7 +1828,7 @@ def input_prediction():
     #     return dataset
     #
     print('######################33333')
-    print(dataset2)
+    # print(dataset2)
     print('######################33333')
 
     # print(c_method)
@@ -1409,7 +1841,7 @@ def input_prediction():
     #     result_df = result_df[result_df['LON'] >= bottomRightLong]
     #     return result_df
     lon1 = float(request.args.get("lon1"))
-    print(lon1)
+    # print(lon1)
     lat1 = float(request.args.get("lat1"))
     lon2 = float(request.args.get("lon2"))
     lat2 = float(request.args.get("lat2"))
@@ -1425,21 +1857,23 @@ def input_prediction():
     # user selected form drop down menu
 
     station_name = request.args.get("subdata")
-    print(station_name)
+    # print(station_name)
     print("******************************************")
 
     spearte_station_lon_lat = station_name.split(',')
-    print(spearte_station_lon_lat)
+    # print(spearte_station_lon_lat)
     station_lat = spearte_station_lon_lat[0]
     station_lon = spearte_station_lon_lat[1]
     selected_station_lat = float(station_lat)
     selected_station_lon = float(station_lon)
-    print("**************")
+    print("***********************************")
     prediction_method = request.args.get("method")
     prediction_window = int(request.args.get("day"))
-    print(prediction_method)
-    print(prediction_window)
-    print("*********")
+    c_method = request.args.get("method1")
+    compression_ratio = request.args.get("ratio1")
+    print(c_method)
+    print(compression_ratio)
+    print("*****************************")
     # # lat = 78.250
     # # lon = 22.817
 
@@ -1451,11 +1885,20 @@ def input_prediction():
 
         return mapping.get(user_input, user_input)
 
+    def fix1(user_input):
+        mapping = {"Discrete Fourier Transform (DFT)": "DFT", "Piecewise Aggregate Approximation (PAA)": "PAA",
+                   "Visvalingam-Whyatt Algorithm (VW)": "VW", "(Adapted) Optimal Algorithm (OP)": "OP",
+                    "(Adapted) Douglas-Peucker Algorithm (DP)": "DP"
+                   }
+
+        return mapping.get(user_input, user_input)
+
 
     # station_data = choose_a_station(subset_data)
 
     predict_method = fix(prediction_method)
-    print(predict_method)
+    c_method = fix1(c_method)
+    print(c_method)
     # p_data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
     # data = pd.read_csv("app/static/dataset/rawa_data/myRes.csv")
     p_data = subset_data
@@ -1464,38 +1907,83 @@ def input_prediction():
     # print("############################")
     # print(p_data)
     temp_df = pd.DataFrame(columns=['date', 'temp'])
+    ctemp_df = pd.DataFrame(columns=['date', 'temp'])
+
     temp_df['date'] = dates
+    ctemp_df['date'] = dates
     temp_df['date'] = pd.to_datetime(temp_df['date'])
+    ctemp_df['date'] = pd.to_datetime(ctemp_df['date'])
     temperature = p_data[(p_data['LAT'] == selected_station_lat) & (p_data['LON'] == selected_station_lon)]
     print("!!!!!!!!!!!!!!!!!!!111")
     # print(temperature)
     print("!!!!!!!!!!!!!!!!!!!!!!")
     # print(temperature.iloc[0,1:].values)
     temperature_value = temperature.iloc[0, 3:].values
-    print(temperature_value)
+    # print(temperature_value)
+    c_tools = compress(temperature_value)
+    c_data = []
+    d_metric = distance_metrics(ctemp_df)
+
+    if c_method == "DFT":
+        c_data = c_tools.dft(float(compression_ratio))
+
+    elif c_method == "PAA":
+        c_data = c_tools.paa(float(compression_ratio))
+
+    elif c_method == "OP":
+        c_data = c_tools.modify_opt(int(compression_ratio))
+        c_data = d_metric.interpolate(c_data)
+
+    elif c_method == "VW":
+        c_data = c_tools.modify_vw(int(compression_ratio))
+        c_data = d_metric.interpolate(c_data)
+
+    elif c_method == "DP":
+        c_data = c_tools.modify_dp(int(compression_ratio))
+        c_data = d_metric.interpolate(c_data)
+
+    else:
+        print("method not defined")
+
+    # c_data = c_tools.dft(float(0.01))
+    # print(c_data)
+    print("..................................=================")
+    # print(c_data)
+    print("..................................=================")
     temp_df['temp'] = temperature_value
+    ctemp_df['temp'] = c_data
     temp_df = temp_df.rename(columns={'date': 'ds', 'temp': 'y'})
-    # print(temp_df)
+    ctemp_df = ctemp_df.rename(columns={'date': 'ds', 'temp': 'y'})
+
+    # print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    # # print(temp_df)
+    # print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
     p_model = predict_methods()
 
     if predict_method == "AR":
 
         p_model.AR_model(prediction_window, temp_df)
+        p_model.C_AR_model(prediction_window, ctemp_df)
 
-        return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window, file_name='/images/prediction/{0}.png'.format(predict_method))
+        return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window, file_name1='/images/prediction/{0}.png'.format(predict_method), file_name2='/images/prediction/CAR.png')
 
     elif predict_method == "PM":
 
         p_model.prophet_model(prediction_window, temp_df)
+        p_model.C_prophet_model(prediction_window, ctemp_df)
 
-        return render_template("public/prediction_results.html", method=prediction_method,p_window=prediction_window, file_name='/images/prediction/{0}.png'.format(predict_method))
+
+        return render_template("public/prediction_results.html", method=prediction_method,p_window=prediction_window, file_name1='/images/prediction/{0}.png'.format(predict_method),file_name2='/images/prediction/CPM.png')
 
     elif predict_method == "ARIMA":
 
         p_model.ARIMA_model(prediction_window, temp_df)
+        p_model.C_ARIMA_model(prediction_window, ctemp_df)
+
 
         return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window,
-                               file_name='/images/prediction/{0}.png'.format(predict_method))
+                               file_name1='/images/prediction/{0}.png'.format(predict_method), file_name2='/images/prediction/CARIMA.png')
 
     else:
         return "No Method is selected"
