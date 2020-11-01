@@ -189,16 +189,13 @@ X = series.values
 X
 
 
-# In[11]:
+# In[25]:
 
 
 def SARIMA(lat, lon, prediction_time_window):
     temp_df = dataExtractor(lat, lon)
     series = temp_df.set_index(['ds']).squeeze()
     X = series.values
-#     print(X)
-#     train, test = X[: len(X) - prediction_time_window], X[len(X) - prediction_time_window:]
-#     print(test)
     model = sm.tsa.statespace.SARIMAX(series,
                                 order=(0, 0, 1),
                                 seasonal_order=(1, 1, 1, 12),
@@ -209,7 +206,7 @@ def SARIMA(lat, lon, prediction_time_window):
     results.plot_diagnostics(figsize=(18, 8))
     plt.show()
     
-    pred = results.get_prediction(start=pd.to_datetime('2019-12-01'), dynamic=False)
+    pred = results.get_prediction(start=series.index[-1] + pd.DateOffset(-1 * prediction_time_window), dynamic=False)
     pred_ci = pred.conf_int()
     ax = series['2019-':].plot(label='observed')
     pred.predicted_mean.plot(ax=ax, label='Forecast', alpha=.7)
@@ -231,7 +228,7 @@ def SARIMA(lat, lon, prediction_time_window):
     print('The Root Mean Squared Error is {}'.format(round(np.sqrt(mse), 2)))
 
 
-# In[12]:
+# In[26]:
 
 
 lat = 78.250
