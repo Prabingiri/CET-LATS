@@ -72,6 +72,14 @@
     <label for="day">Choose the prediction window in days:</label>
     <select id="day" name="day" required onkeypress="getSavedValue(this)"></select>
     <br><br>
+
+    <label for="method1">Choose a compression method:</label>
+    <select id="method1" name="method1" required onkeypress="getSavedValue(this)">
+        <option ></option>
+    </select>
+    <label for="ratio1">Choose a ratio:</label>
+    <select id="ratio1" name="ratio1" required onkeypress="getSavedValue(this)"></select>
+    <br><br>
 <!--    <button type="submit">Visualize</button>-->
     <input type="submit" value="Submit" id="feedback-submit" onclick="thanks()">
 </form>
@@ -133,24 +141,49 @@
 <script>
     "use strict";
 
-    var methods = {{ methods|tojson }};
 
-    var form = $('form');
-    var method = $('select#method');
-    var day = $('select#day');
+        var methods = {{ methods|tojson }};
 
-    for (var key in methods) {
-        method.append($('<option/>', {'value': key, 'text': key}));
+        var form = $('form');
+        var method = $('select#method');
+        var day = $('select#day');
+
+        for (var key in methods) {
+            method.append($('<option/>', {'value': key, 'text': key}));
+        }
+
+        method.change(function (ev) {
+            day.empty();
+            day.append($('<option/>'));
+
+            var days = methods[method.val()];
+
+            for (var i in days) {
+                day.append($('<option/>', {'value': days[i], 'text': days[i]}));
+            }
+        });
+
+
+    var methods1 = {{ methods1|tojson }};
+    console.log(methods1)
+    console.log(methods)
+
+    {#var form = $('form');#}
+    var method1 = $('select#method1');
+    var ratio1 = $('select#ratio1');
+
+    for (var key in methods1) {
+        method1.append($('<option/>', {'value': key, 'text': key}));
     }
 
-    method.change(function(ev) {
-        day.empty();
-        day.append($('<option/>'));
+    method1.change(function(ev) {
+        ratio1.empty();
+        ratio1.append($('<option/>'));
 
-        var days = methods[method.val()];
+        var ratios1 = methods1[method1.val()];
 
-        for (var i in days) {
-            day.append($('<option/>', {'value': days[i], 'text': days[i]}));
+        for (var i in ratios1) {
+            ratio1.append($('<option/>', {'value': ratios1[i], 'text': ratios1[i]}));
         }
     });
     function thanks(){

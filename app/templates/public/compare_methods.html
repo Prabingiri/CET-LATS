@@ -34,23 +34,26 @@
 <!--                    <input type="text" id="lat2" name="lat2" placeholder="42.032974"><br><br>-->
                    <!--<input type="submit" value="Submit">-->
 
-                   <div>
-                     <h5>Select the dataset</h5>
-
+                                            <div>
+                        <h5>Select the  dataset</h5>
                     <select name="data" id="dataset" >
-                      <option value="cluster1">dataset1</option>
-                      <option value="cluster2">dataset2</option>
-                      <option value="cluster3">dataset3</option>
-                      <option value="cluster4">dataset4</option>
-                        <option value="cluster5">dataset5</option>
-                      <option value="6">dataset6</option>
-                      <option value="7">dataset7</option>
-                      <option value="8">dataset8</option>
-                        <option value="9">dataset9</option>
-                      <option value="10">dataset10</option>
+                        {% for dataset in datasets %}
+                        <option value="{{ dataset}}" SELECTED>{{ dataset }}</option>
+                        {% endfor %} }
+{#                      <option value="cluster1">dataset1</option>#}
+{#                      <option value="cluster2">dataset2</option>#}
+{#                      <option value="cluster3">dataset3</option>#}
+{#                      <option value="cluster4">dataset4</option>#}
+{#                        <option value="cluster5">dataset5</option>#}
+{#                      <option value="6">dataset6</option>#}
+{#                      <option value="7">dataset7</option>#}
+{#                      <option value="8">dataset8</option>#}
+{#                        <option value="9">dataset9</option>#}
+{#                      <option value="10">dataset10</option>#}
 
                     </select>
                        </div>
+               <hr>
 
                 <br><br>
                 <!--<h2>Other Options</h2>-->
@@ -71,6 +74,22 @@
                 <div class="checkbox">
                   <label><input type="checkbox" name="check" value="DP"> (Adapted) Douglas-Peucker Algorithm (DP) </label>
                 </div>
+
+               <hr>
+
+                                <div class="choose_d_methd">
+
+                    <label for="d_method">Choose a surface distance metric:</label>
+                      <select id="d_method" name="d_method">
+                        <option value="HD">Hausdorff Distance (HD)</option>
+                        <option value="AD">Angular Difference (AD)</option>
+                        <option value="VD">Volumetric Difference (VD)</option>
+{#                        <option value="OP">(Adapted) Optimal Algorithm (OP)</option>#}
+{#                        <option value="DP">(Adapted) Douglas-Peucker Algorithm (DP)</option>#}
+                      </select>
+                 </div>
+                 <br><br>
+               <hr>
                    <div>
                    <button type="submit" class="btn btn-success">Compare</button>
                        </div>

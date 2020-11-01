@@ -16,6 +16,9 @@
 <p>VISUALIZE BEFORE AND AFTER COMPRESSIONS OF  INDIVIDUAL COMPRESSION TECHNIQES </p>
     </div>
     </div>
+
+
+
 <br>
 <form  id="someForm" action="individual_results" method="POST" onclick = "return(validate());">
 
@@ -94,18 +97,18 @@
 <!--        $.ajax({-->
 <!--        type: "POST",-->
 <!--        url: "/input_values"-->
-<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->
-<!--            compression_method: method.val(),-->
-<!--            compression_ratio: ratio.val()-->
-<!--        }),-->
-<!--        success: function(data) {-->
-<!--            alert('SUCCESS: ' + data);-->
-<!--        },-->
-
-<!--        ev.preventDefault();-->
-
-<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->
-<!--    });-->
+{#<!--        data: $.param({ // use $.param() to convert from a JSON object to url-encoded-->#}
+{#<!--            compression_method: method.val(),-->#}
+{#<!--            compression_ratio: ratio.val()-->#}
+{#<!--        }),-->#}
+{#<!--        success: function(data) {-->#}
+{#<!--            alert('SUCCESS: ' + data);-->#}
+{#<!--        },-->#}
+{##}
+{#<!--        ev.preventDefault();-->#}
+{##}
+{#<!--        alert("compressing data with ratio/tolerance " + ratio.val() + " using " + method.val());-->#}
+{#<!--    });-->#}
 </script>
 
 <script type = "text/javascript">
@@ -128,6 +131,7 @@
       }
    //-->
 </script>
+
 {% endblock %}
 
 
@@ -167,9 +171,9 @@
 <!--<body>-->
 <!--  <form class="" action="/" method="post">-->
 <!--    <select onChange="changeSizeInput()" id="catSelect">-->
-<!--    {% for cat in cats %}-->
-<!--      <option size={{ cat['size'] }}>{{ cat['name'] }}</option>-->
-<!--    {% endfor %}-->
+{#<!--    {% for cat in cats %}-->#}
+{#<!--      <option size={{ cat['size'] }}>{{ cat['name'] }}</option>-->#}
+{#<!--    {% endfor %}-->#}
 <!--  </select>-->
 <!--    <input type="text" name="size" id="catSize">-->
 <!--    <input type="submit" value="Submit">-->
