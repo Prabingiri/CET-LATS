@@ -73,9 +73,45 @@ class predict_methods():
         plt.yticks(fontsize=20)
         plt.legend(fontsize=20)
         return plt.savefig('app/static/images/prediction/PM.png')
+
+
+
+
         # plt.show()
 
+    def C_prophet_model(self, prediction_time_window, ctemp_df):
+        # temp_df = self.dataExtractor(lat, lon)
 
+        # Split the data to train and test data
+        # i.e. Take data of the 11 months as training data and last month as the test data
+        plt.clf()
+        prediction_size = prediction_time_window
+        train_data = ctemp_df[:-prediction_size]
+        test_data = ctemp_df[-prediction_size:]
+        model = Prophet()
+        model.fit(train_data)
+        future = model.make_future_dataframe(periods=prediction_size)
+        forecast = model.predict(future)
+        model.plot(forecast)
+        t = model.plot_components(forecast)
+
+        def make_comparison_dataframe(historical, forecast):
+            return forecast.set_index('ds')[['yhat', 'yhat_lower', 'yhat_upper']].join(historical.set_index('ds'))
+
+        comparison_dataframe = make_comparison_dataframe(ctemp_df, forecast)
+
+        axis_font = {'fontname': 'Arial', 'size': '14'}
+        plt.figure(figsize=(14, 8))
+        plt.plot(comparison_dataframe['yhat'], label='Predicted value')
+        plt.plot(comparison_dataframe['yhat_lower'], label='Lower bound prediction')
+        plt.plot(comparison_dataframe['yhat_upper'], label='Upper bound prediction')
+        plt.plot(comparison_dataframe['y'], label='Actual temperature', )
+        plt.xlabel('Date', fontsize=20)
+        plt.ylabel('Temperature', fontsize=20)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.legend(fontsize=20)
+        return plt.savefig('app/static/images/prediction/CPM.png')
     # # AutoRegression (AR) Model
 
     def AR_model(self, prediction_time_window, temp_df):
@@ -94,13 +130,13 @@ class predict_methods():
         # train autoregression
         model = AutoReg(train, lags=prediction_time_window)
         model_fit = model.fit()
-        print('Coefficients: %s' % model_fit.params)
+        # print('Coefficients: %s' % model_fit.params)
         # make predictions
         predictions = model_fit.predict(start=len(train), end=len(train) + len(test) - 1, dynamic=False)
-        for i in range(len(predictions)):
-            print('predicted=%f, expected=%f' % (predictions[i], test[i]))
+        # for i in range(len(predictions)):
+            # print('predicted=%f, expected=%f' % (predictions[i], test[i]))
         rmse = sqrt(mean_squared_error(test, predictions))
-        print('Test RMSE: %.3f' % rmse)
+        # print('Test RMSE: %.3f' % rmse)
         # plot results
         plt.plot(test, label='Test data')
         plt.plot(predictions, color='red', label='Predicted values')
@@ -109,10 +145,43 @@ class predict_methods():
         plt.legend()
 
         return plt.savefig('app/static/images/prediction/AR.png')
+
+
         # plt.show()
 
 
 
+    def C_AR_model(self, prediction_time_window, ctemp_df):
+
+        # load dataset
+        # temp_df = self.dataExtractor(lat, lon)
+
+        # Date time temperature has two columns. The first column is the dates (01-01-2019 to 30-12-2019) and the second column
+        # is the temperature. All these data are from one station.
+        plt.clf()
+        series = ctemp_df.set_index(['ds']).squeeze()
+        # split dataset
+        X = series.values
+
+        train, test = X[1:len(X) - prediction_time_window], X[len(X) - prediction_time_window:]
+        # train autoregression
+        model = AutoReg(train, lags=prediction_time_window)
+        model_fit = model.fit()
+        # print('Coefficients: %s' % model_fit.params)
+        # make predictions
+        predictions = model_fit.predict(start=len(train), end=len(train) + len(test) - 1, dynamic=False)
+        for i in range(len(predictions)):
+            print('predicted=%f, expected=%f' % (predictions[i], test[i]))
+        rmse = sqrt(mean_squared_error(test, predictions))
+        # print('Test RMSE: %.3f' % rmse)
+        # plot results
+        plt.plot(test, label='Test data')
+        plt.plot(predictions, color='red', label='Predicted values')
+        plt.ylabel('Temperature')
+        plt.xlabel('Number of days in future')
+        plt.legend()
+
+        return plt.savefig('app/static/images/prediction/CAR.png')
     # # ARIMA Model
 
     def ARIMA_model(self, prediction_time_window, temp_df):
@@ -132,14 +201,42 @@ class predict_methods():
             predictions.append(yhat)
             obs = test[t]
             history.append(obs)
-            print('predicted=%f, expected=%f' % (yhat, obs))
+            # print('predicted=%f, expected=%f' % (yhat, obs))
         error = mean_squared_error(test, predictions)
-        print('Test MSE: %.3f' % error)
+        # print('Test MSE: %.3f' % error)
         # plot
         plt.plot(test)
         plt.plot(predictions, color='red')
 
         return plt.savefig('app/static/images/prediction/ARIMA.png')
+
+
+
+    def C_ARIMA_model(self, prediction_time_window, ctemp_df):
+        # load dataset
+        # temp_df = self.dataExtractor(lat, lon)
+        plt.clf()
+        series = ctemp_df.set_index(['ds']).squeeze()
+        X = series.values
+        train, test = X[: len(X) - prediction_time_window], X[len(X) - prediction_time_window:]
+        history = [x for x in train]
+        predictions = list()
+        for t in range(len(test)):
+            model = ARIMA(history, order=(5, 1, 0))
+            model_fit = model.fit(disp=0)
+            output = model_fit.forecast()
+            yhat = output[0]
+            predictions.append(yhat)
+            obs = test[t]
+            history.append(obs)
+            # print('predicted=%f, expected=%f' % (yhat, obs))
+        error = mean_squared_error(test, predictions)
+        # print('Test MSE: %.3f' % error)
+        # plot
+        plt.plot(test)
+        plt.plot(predictions, color='red')
+
+        return plt.savefig('app/static/images/prediction/CARIMA.png')
 
 
 
