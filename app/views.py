@@ -872,7 +872,7 @@ def comparison():
                 d = open('app/static/results/comparison_result.csv', 'a')
                 for error in errors:
 
-                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'VW', compress_data)
                     # print(type(compressedvolume))
 
                     # vol_dif.append(vol_diff)
@@ -1036,9 +1036,9 @@ def comparison():
             #
             elif d_method =='VD':
                 d = open('app/static/results/comparison_result.csv', 'a')
-                for error in errors:
+                for ratio in ratios:
 
-                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    compressedvolume = dm.compressed_volume(rawvolume, ratio, 'PAA', compress_data)
                     # print(type(compressedvolume))
 
                     # vol_dif.append(vol_diff)
@@ -1238,9 +1238,9 @@ def comparison():
             #
             elif d_method =='VD':
                 d = open('app/static/results/comparison_result.csv', 'a')
-                for error in errors:
+                for ratio in ratios:
 
-                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    compressedvolume = dm.compressed_volume(rawvolume, ratio, 'DFT', compress_data)
                     # print(type(compressedvolume))
 
                     # vol_dif.append(vol_diff)
@@ -1404,7 +1404,7 @@ def comparison():
                 d = open('app/static/results/comparison_result.csv', 'a')
                 for error in errors:
 
-                    compressedvolume = dm.compressed_volume(rawvolume, error, 'DP', compress_data)
+                    compressedvolume = dm.compressed_volume(rawvolume, error, 'OP', compress_data)
                     # print(type(compressedvolume))
 
                     # vol_dif.append(vol_diff)
@@ -1749,6 +1749,7 @@ def getStations(topLeftLat, topLeftLong, bottomRightLat, bottomRightLong, data):
 #     print(subset_data_dict_show)
 #     return result_df, subset_data
 
+
 @app.route('/select_dataset_range', methods=["POST", "GET"])
 def getsinglestation():
     dataset2 = pd.read_csv("app/static/dataset/rawa_data/myRes.csv", index_col=0)
@@ -1788,6 +1789,8 @@ def getsinglestation():
         # print(len(attribu
         json_result = "pra"
         return make_response(jsonify(subset_data_dict_show))
+
+
 @app.route('/predict', methods=['POST','GET'])
 def prediction():
 
@@ -1963,27 +1966,35 @@ def input_prediction():
 
     if predict_method == "AR":
 
-        p_model.AR_model(prediction_window, temp_df)
-        p_model.C_AR_model(prediction_window, ctemp_df)
+        p_model.AR_model(prediction_window, temp_df, name="AR")
+        p_model.AR_model(prediction_window, ctemp_df, name="CAR")
 
         return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window, file_name1='/images/prediction/{0}.png'.format(predict_method), file_name2='/images/prediction/CAR.png')
 
     elif predict_method == "PM":
 
-        p_model.prophet_model(prediction_window, temp_df)
-        p_model.C_prophet_model(prediction_window, ctemp_df)
+        p_model.prophet_model(prediction_window, temp_df, name="PM")
+        p_model.prophet_model(prediction_window, ctemp_df, name="CPM")
 
 
         return render_template("public/prediction_results.html", method=prediction_method,p_window=prediction_window, file_name1='/images/prediction/{0}.png'.format(predict_method),file_name2='/images/prediction/CPM.png')
 
     elif predict_method == "ARIMA":
 
-        p_model.ARIMA_model(prediction_window, temp_df)
-        p_model.C_ARIMA_model(prediction_window, ctemp_df)
+        p_model.ARIMA_model(prediction_window, temp_df, name="ARIMA")
+        p_model.ARIMA_model(prediction_window, ctemp_df, name="CARIMA")
 
 
         return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window,
                                file_name1='/images/prediction/{0}.png'.format(predict_method), file_name2='/images/prediction/CARIMA.png')
+
+    elif predict_method == "SARIMA":
+        p_model.SARIMA(prediction_window, temp_df, name="SARIMA")
+        p_model.SARIMA(prediction_window, ctemp_df, name="CSARIMA")
+
+        return render_template("public/prediction_results.html", method=prediction_method, p_window=prediction_window,
+                               file_name1='/images/prediction/{0}.png'.format(predict_method),
+                               file_name2='/images/prediction/CSARIMA.png')
 
     else:
         return "No Method is selected"
